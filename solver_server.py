@@ -18,12 +18,26 @@ from config import *
 import solver
 import scanner
 
+SCREENSHOT_SIZES = {
+    'iphone5': (640, 1136)
+}
+
 class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
 
 
     def _add_cors_headers(self):
         # CORS header
         self.set_header('Access-Control-Allow-Origin', '*')
+
+    def create_error_response(self, msg):
+        self.set_status(412)
+        self._add_cors_headers()
+        response = {
+            'returnValue': 'ERR',
+            'errorCode': msg,
+        }
+        logging.error("HTTP Error 412: {}".format(msg))
+        return response
 
     #@gen.coroutine
     def post(self):
@@ -36,15 +50,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
                 img_data = base64.b64decode(imgfile_b64)
 
             if not img_data or len(img_data) == 0:
-                self.set_status(412)
-                self._add_cors_headers()
-
-                response = {
-                    'returnValue': 'ERR',
-                    'errorCode': 'error decoding img',
-                }
-                logging.error("HTTP Error 412: image null ")
-                self.write(response)
+                self.write(self.create_error_response('no image found'))
                 return
 
             # now do solving.. if image is of the correct size.
@@ -52,6 +58,14 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             logging.debug("Image on server, now scanning")
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             logging.info("Read image {}".format(img_np.shape))
+
+            (h, w, _) = img_np.shape
+            sw, sh = SCREENSHOT_SIZES['iphone5']
+            if h != sh or w != sw:
+                self.write(self.create_error_response('screenshot of wrong size'))
+                return
+            import time
+            time.sleep(2)
 
             # now do solve..
             image = solver.solve_artusi(img_np, True, show_step=True)
@@ -84,12 +98,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             return
 
         except Exception as e:
-            response = {
-                'returnValue': 'ERR',
-                'errorCode': 'error decoding img:{}'.format(e),
-            }
-            logging.error("HTTP Error 412:  exception {}".format(e))
-            self.write(response)
+            self.write(self.create_error_response("Generic error: {}".format(e)))
 
     def delete_temp_file(self, file):
         logging.info("deleting {}".format(file.name))

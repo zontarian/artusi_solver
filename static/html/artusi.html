@@ -1,25 +1,21 @@
-<div class="row">
+<div class="row bg-info">
 	<div class="col-md-12">
-		ARTUSI!
+		<h3>auto solver for Final Touch of ArtusiCooking Time</h3>
 	</div>
 	
 </div>
 <div class="row">
-	<div class="col-md-12">
-		<input type="file"  id="artusi-image" class="form-control" ng-model="artusi.image"   title="image" placeholder="iamge file">
+	<div class="col-sm-6">
+		<input data-file type="file" id="artusi-image" class="form-control" ng-model="artusi.image"
+		       title="image" placeholder="iamge file" ng-change="test('change')">
 	</div>
-
-</div>
-<div class="row">
-	<div class="col-md-12">
-		<input type="submit" ng-click="upload()" class="form-control"  >
-	</div>
+  
 
 </div>
 <div class="row" ng-if="artusi.solution_url">
 	<div class="col-md-12">
 		<!--<img data-ng-src="data:image/jpg;base64,{$ artusi.solution_image $}">-->
-		<img ng-src="{$ artusi.solution_url $}" class="img_solution"/>.
+		<img ng-src="{$ artusi.solution_url $}" class="ximg_solution" ng-class="{img_solution: image_arrived, img_loading: !image_arrived}"/>.
 	</div>
 
 </div>

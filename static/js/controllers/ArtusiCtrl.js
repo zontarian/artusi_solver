@@ -7,7 +7,8 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         image:null,
         solution_image:null,
         solution_url:"",
-    }
+    };
+    $scope.image_arrived = false;
     //
     function _arrayBufferToBase64( buffer ) {
         var binary = '';
@@ -19,22 +20,24 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         return window.btoa( binary );
     }
 
+    $scope.test = function () {
+        $scope.upload();
+        $scope.image_arrived = false;
+    }
 
     $scope.upload = function(){
+
         $scope.artusi.solution_url = '/static/css/loading.gif';
         ArtusiAPI.upload('#artusi-image').then(function(data){
             console.log("api called",data.url);
-            // $scope.apiResult=JSON.stringify(data,null,"  ");
-            // var b64encoded =  btoa(unescape(encodeURIComponent(data)));
-            // $scope.artusi.solution_image = b64encoded;
-            //args = JSON.parse(data.data)
-            // a = new FileReader()
-            // a.readAsDataURL(data)
-            // url = URL.createObjectURL(data)
             $scope.artusi.solution_url = data.url;
+            $scope.image_arrived = true;
         },function(err){
             console.error(err);
-
+            alertify.error("Error:<br />"+err.data.errorCode)
+            $scope.image_arrived = false;
+            $scope.artusi.solution_url = null;
+            $scope.artusi.image = null;
         });
     }
 

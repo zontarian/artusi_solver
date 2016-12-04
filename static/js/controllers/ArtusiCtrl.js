@@ -5,7 +5,8 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
     // all the items
     $scope.artusi={
         image:null,
-        solution_image:null
+        solution_image:null,
+        solution_url:"",
     }
     //
     function _arrayBufferToBase64( buffer ) {
@@ -20,7 +21,7 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
 
 
     $scope.upload = function(){
-        $scope.artusi.solution_url = '/static/css/loading.gif';favicon (1).ico
+        $scope.artusi.solution_url = '/static/css/loading.gif';
         ArtusiAPI.upload('#artusi-image').then(function(data){
             console.log("api called",data.url);
             // $scope.apiResult=JSON.stringify(data,null,"  ");

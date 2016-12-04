@@ -88,6 +88,25 @@ class Matrix:
         print("  ========\n")
 
     @staticmethod
+    def matrix_to_string(m, header=None, numeric=False):
+        string_buffer = []
+        string_buffer.append("")
+        if header:
+            string_buffer.append(" -- {} -- ".format(header))
+        string_buffer.append("  01234568 ")
+        for r in range(8):
+            line_buffer= []
+            line_buffer.append("{} ".format(r) )
+            for c in range(8):
+                if m[r][c] is None:
+                    line_buffer.append('-' )
+                else:
+                    line_buffer.append(m[r][c])
+            string_buffer.append("".join(line_buffer))
+        string_buffer.append("  ========")
+        return "\n".join(string_buffer)
+
+    @staticmethod
     def compact_matrix(mm):
         '''compact by gravity'''
         mmm = Matrix.matrix_copy(mm)
@@ -390,6 +409,8 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?'):
     scan = scanner.ElementScannerForArtusi(image_data)
     scan.crop_image(scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y)
     scan.scan()
+    logging.debug("Image scanned:\n")
+    logging.debug("Matrix is\n{}".format(Matrix.matrix_to_string(scan.matrix)))
 
     Matrix.print_matrix(scan.matrix, "scanned")
     if show:
@@ -405,10 +426,13 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?'):
 
     # now pass image to scann
     solver = ArtusiSolver(scan.matrix)
+    logging.debug("Now solving from resulting matrix")
     solver.solve(ingredient=ingredient)
+
     sols = solver.get_best_solutions()
+    logging.debug("Solved")
     for sol in sols:
-        print("Solution:{}".format(sol))
+        logging.debug("Solution:{}".format(sol))
 
     img = scan.superimpose_solution(image, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
                                     scanner.START_X, scanner.START_Y, (scanner.END_X - scanner.START_X) / 8 )

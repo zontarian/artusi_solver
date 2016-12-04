@@ -28,6 +28,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
     #@gen.coroutine
     def post(self):
         try:
+            logging.debug("Handling upload of Artusi image")
             as_url = self.get_argument('as_url', False) == 'true'
             img_data = self.request.files['image_file'][0]['body']
             if not img_data:
@@ -48,6 +49,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
 
             # now do solving.. if image is of the correct size.
             nparr = np.fromstring(img_data, np.uint8)
+            logging.debug("Image on server, now scanning")
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             logging.info("Read image {}".format(img_np.shape))
 
@@ -102,6 +104,7 @@ url_patterns = [
     #(r'/api/system/start', StartHandler),
 ]
 
+logger = logging.getLogger(__package__)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='HTTP Server')
@@ -109,6 +112,36 @@ if __name__=='__main__':
     parser.add_argument('ip', help='HTTP Server IP')
     args = parser.parse_args()
 
+    # setup logger
+    log_level = logging.DEBUG
+    logger.setLevel(log_level)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+
+    formatter = None
+    try:
+        # noinspection PyUnresolvedReferences
+        import colorlog
+        formatter = colorlog.ColoredFormatter(
+            "%(log_color)s%(levelname)-6s%(reset)s %(cyan)s%(name)-10s %(white)s%(message)s",
+            log_colors={
+                'DEBUG': 'blue',
+                'INFO': 'green',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'red',
+                'EXCEPTION': 'red',
+            }
+        )
+    except ImportError:
+        formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        )
+    finally:
+        console_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
 
     settings = {
         'template_path': STATIC_DIR,

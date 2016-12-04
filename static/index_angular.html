@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<title>Roba Molle</title>
+
+	<link rel="icon" href="/static/favicon.ico" sizes="64x64" type="image/gif">
+	<link rel="icon" href="/static/favicon.png" sizes="any" type="image/png">
+
+	<link href="/static/css/libs/bootstrap.min.css" rel="stylesheet">
+	<!--<link href="/static/css/libs/AdminLTE.min.css" rel="stylesheet">-->
+	<link href="/static/css/libs/font-awesome.4.4.0.min.css" rel="stylesheet">
+	<!--<link href="/static/css/libs/skin-blue.min.css" rel="stylesheet">-->
+	<link href="/static/css/robamolle.css" rel="stylesheet">
+	<!-- include Alertify the style and theme -->
+	<link rel="stylesheet" href="/static/css/alertify/alertify.min.css"/>
+	<link rel="stylesheet" href="/static/css/alertify/themes/default.min.css"/>
+
+	<script src="/static/js/libs/jquery.js"></script>
+	<script src="/static/js/libs/bootstrap.min.js"></script>
+	<script src="/static/js/libs/angular.1.4.7.min.js"></script>
+	
+	<script src="/static/js/libs/angular-ui-router.0.2.15.min.js"></script>
+	<script src="/static/js/libs/alertify.min.js"></script>
+
+
+	<script src="/static/js/app.js"></script>
+	<script src="/static/js/controllers/ArtusiCtrl.js"></script>
+	<script src="/static/js/services/artusi_api.js"></script>
+</head>
+
+<body class=" " ng-app="robamolle">
+
+<div _id="wrapper" class="wrapper" dw-loading="config" dw-loading-options="{text:'loading config'}">
+
+	<header class="main-header"  >
+		<span class="pull-left logo">
+			Test </span>
+		 
+	</header>
+
+	<!-- Page Content -->
+	<div id="page-content-wrapper" class="content-wrapper">
+		<div class="flex-grow" ui-view></div>
+	</div>
+	<!-- /#page-content-wrapper -->
+</div>
+
+</body>
+</html>

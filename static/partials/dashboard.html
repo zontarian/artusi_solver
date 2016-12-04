@@ -1,0 +1,285 @@
+<div class="row">
+	<div class="col-md-12">
+		<div class=" box box-default -collapsed-box">
+			<div class="box-header">
+				<h3 class="box-title">Vote status <em>VM({$ vote_mode $})</em></h3>
+
+				<div class="box-tools pull-right">
+					<button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+				</div><!-- /.box-tools -->
+			</div>
+			<div class="box-body">
+				<form name="forms.votationData">
+				<div class="row margin-bottom">
+					<div class="col-md-2  ">
+							<label for="voteMode">Vote type {$ config.meeting.type $}</label>
+							<select id="voteMode" class="form-control" ng-model="vote_config.votation_type" ng-readonly="freezeInput()"
+							        ng-change="changeVoteMode(vote_config.votation_type)"
+							        ng-options="item.value as item.label for item in voteModesForMeetingType[config.meeting.type]">
+							</select>
+					</div>
+					
+					<div class="col-md-2">
+						<label for="votation">Votation</label>
+
+						<span ng-if="config.easyradio.standalone">
+							<input type="number"  min="0" max="255" id="votation" ng-model="vote_config.votation_id" ng-readonly="freezeInput()"
+						       class="form-control" placeholder="votation id"/>
+						</span>
+						<span ng-if="!config.easyradio.standalone">
+							<select id="votation" class="form-control" ng-model="vote_config.votation_id" ng-readonly="freezeInput()"
+							        ng-change="votationChanged(vote_config.votation_id)"
+							        ng-options="item.value as item.label for item in votations">
+							</select>
+						</span>
+					</div>
+					<div class="col-md-1">
+						<label for="vfake">Fake?</label><br />
+						<input type="checkbox" id="vfake" ng-model="vote_config.is_fake" ng-readonly="freezeInput()"
+						       icheck/>
+					</div>
+					
+					
+					<div class="col-md-1">
+						<label for="votationText">Bkp txt</label>
+						<input type="text" id="votationText" ng-model="vote_config.votation_name" ng-maxlength="5" maxlength="5" ng-readonly="freezeInput()"
+							       placeholder="Text as sent to TVT: can be changed" class="form-control"/>
+
+					</div>
+					<div class="col-md-1">
+						<label for="resprogr" class="">Resprogr</label>
+
+						<input type="number" min="0" max="255" id="resprogr" ng-model="vote_config.votation_resolution_counter"  ng-readonly="freezeInput()" class="form-control"/>
+					</div>
+					<div class="col-md-1">
+						<label for="timeout" class="">Timeout</label>
+						<input type="number"  min="0" max="255" id="timeout" ng-model="vote_config.votation_timeout" ng-readonly="freezeInput()" class="form-control"/>
+					</div>
+					<div class="col-md-1">
+						<button class="btn btn-primary" ng-click="aggiorna_voto(vote_config)"
+						        ng-disabled="!running || !vote_config.votation_id " ng-switch="vote_mode">
+							<span ng-switch-when="poll">Open Vote</span>
+							<span ng-switch-when="vote">Close Vote </span>
+							<!--<span ng-switch-when="confirm">Close Vote Confirm</span>-->
+						</button><br />
+						<span ng-if="running && vote_mode=='vote'">
+						<input  type="checkbox" ng-model="vc.vote_close_force" ng-checked="vc.vote_close_force" />
+							<i>force</i>
+						</span>
+					</div>
+				</div><!-- // 1st row -->
+				<div class="row margin-bottom"  ng-if="vote_config.is_fake">
+					<div class="col-md-4 row">
+						<div class="col-md-7">
+							<label for="fakekind">Fake vote answer mode</label>
+						</div>
+						<div class="col-md-4">
+							<select id="fakekind" class="form-control" ng-model="vote_config.fake_answer_kind" ng-readonly="freezeInput()"
+						        ng-options="item.value as item.label for item in fakeVoteModes">
+							</select>
+						</div>
+					</div>
+					<div class="col-md-5 row">
+						<div class="col-md-9">
+							<label for="faketime">Fake vote answer time immediate. If false, use random</label>
+						</div>
+						<div class="col-md-3">
+							<input type="checkbox" icheck  id="faketime" ng-model="vote_config.fake_answer_time"  ng-readonly="freezeInput()" class="form-control"/>
+						</div>
+					</div>
+				</div><!-- // fake row -->
+				<div class="row">
+					<div class="col-md-8 row">
+						<div class="col-md-2">
+							<label class="" xfor="">Disable btns:</label>
+						</div>
+						<div class="col-md-10 row col-narrow  text-right">
+							<div class="" ng-class="{'col-md-1':item.value!='P','col-md-2':item.value=='P'}"  ng-repeat-start="item in buttonCodes">
+								<label for="disb{$ item.order $}">{$ item.label$}</label>
+							</div>
+							<div class="col-md-1 col-narrow" ng-repeat-end>
+								<input type="checkbox" id="disb{$ item.order $}" ng-model="vote_config.disable_buttons[item.value]" ng-readonly="freezeInput()"
+							       icheck/>
+							</div>
+ 
+						</div>
+					</div><!-- button semi row -->
+					<div class="col-md-4 row">
+						<div class="col-md-3">
+							<label class="" xfor="">Hide texts:</label>
+						</div>
+						<div class="col-md-9 row">
+							<div ng-repeat-start="item in textCodes" class="col-md-3 col-narrow text-right">
+								<label for="ht{$item.order$}">{$item.label$}</label>
+							</div>
+							<div class="col-md-1 col-narrow" ng-repeat-end>
+								<input type="checkbox" id="ht{$item.order$}"  ng-model="vote_config.hide_texts[item.value]" ng-readonly="freezeInput()"
+								       icheck/>
+							</div>
+ 
+
+						</div>
+					</div>
+				</div>
+				</form>
+				<div class="row" ng-if="extra_fields && extra_fields.length>0">
+					<div class="col-md-12">
+						<div class="panel panel-default">
+							<div class="panel-heading">
+								<h3 class="panel-title">Vote config for vote type {$  voteTypeHuman(vote_config.votation_type) $}</h3>
+							</div>
+							<div class="panel-body">
+
+								<div class="row col-md-12" ng-if="easyradio.standalone != true">
+									<form name="forms.extraFields">
+									<div class="row">
+										<div class="col-md-2" ng-repeat="param in extra_fields">
+											 <!-- config here -->
+											<label for="exp_{$ param.name $}">{$  param.label $}</label><br />
+											<input ng-if="param.type=='int'" type="text" id="exp_{$ param.name $}"
+											       ng-model="vote_config.extra_params[param.name]"
+											       min="0" max="255" class="form-control">
+											<input ng-if="param.type=='bool'"  type="checkbox" id="exp_{$ param.name $}"
+											       ng-model="vote_config.extra_params[param.name]" ng-readonly="freezeInput()"
+											       icheck/>
+											<select ng-if="param.type=='list'" id="exp_{$ param.name $}" class="form-control"
+											        ng-model="vote_config.extra_params[param.name]" ng-readonly="freezeInput()">
+												<option ng-repeat="o in param.values" value="o.value">{$ o.label $}</option>
+											</select>
+										</div>
+									</div>
+									</form>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div><!-- // 4throw, with panel -->
+
+
+			</div>
+		</div>
+	</div>
+</div>
+<div class="row" ng-if="vote_open || perc_voters || votation_timer">
+	<div class="col-md-12">
+		<div class=" box box-default ">
+			<div class="box-header">
+				<h3 class="box-title">Resolution/votation {$ votation_number $} {$ votation_descr $}</h3>
+
+				<div class="box-tools pull-right">
+				</div><!-- /.box-tools -->
+
+			</div>
+			<div class="box-body">
+
+				<div class="row">
+					<div class="col-md-6">Elapsed time: <strong ng-if="elapsed">{$ votation_time | number:2 $}"</strong>
+						<strong ng-if="!elapsed">closed</strong>
+					</div>
+					<div class="col-md-6">VIP votes on total VIPs: <strong>{$ perc_vip_voters | number:4 $}%</strong></div>
+
+				</div>
+				<div class="row">
+					<div class="col-md-6">% voters: <strong>{$ perc_voters | number:4 $}%</strong></div>
+					<div class="col-md-6">non VIP votes out of non VIP total: <strong>{$ perc_nonvip_voters |number: 4 $}%</strong></div>
+				</div>
+				<div class="row" ng-if="vote_mode=='confirm'">
+					<div class="col-md-6">confirmed votes: <strong>{$ vote_confirmed $}%</strong></div>
+					<div class="col-md-6">confirmed VIP votes: <strong>{$ vote_confirmed_vip  $}%</strong></div>
+				</div>
+			</div>
+		</div><!-- /box -->
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-12">
+		<div class=nav-tabs-custom">
+			<ul class="nav nav-tabs">
+
+				<li class="active">
+					<a data-toggle="tab" href="#votelist">Votes List</a>
+				</li>
+				<li  >
+					<a data-toggle="tab" href="#votegrid">Votes Grid</a>
+				</li>
+				<li>
+					<a data-toggle="tab" data-context-event="contextmenu" id="votetabletab" data-context-menu="/static/partials/gridContextMenu.html" href="#votetable">Voters Table</a>
+				</li>
+				<li  >
+					<a data-toggle="tab" href="#votesummary">Votes Summary</a>
+				</li>
+				
+				<li class="form">
+					<div class="row">
+						<div class="col-md-6 col-md-offset-2" >
+							<input ng-model="filter.value" class="form-control" ng-change="doFilter()" placeholder="search voters table" focus-on="focusSearch"/>
+						</div>
+						<div class="col-md-4"><button ng-click="doFilter()" ng-disabled="!filter.value " class="btn-primary btn">Filter</button></div>
+					</div>
+				</li>
+			</ul>
+
+			<div class="tab-content">
+				<div id="votelist" class="tab-pane active">
+					<div class="box box-solid box-success">
+						<div class="box-header with-border">
+							<h3 class="box-title">VIP voters</h3>
+						</div><!-- /.box-header -->
+						<div class="box-body">
+							<div class="row" id="vip_list">
+								<div class="col-md-4" ng-bind-html="voters_vip[0]"> </div>
+								<div class="col-md-4" ng-bind-html="voters_vip[1]"></div>
+								<div class="col-md-4" ng-bind-html="voters_vip[2]"> </div>
+							</div>
+						</div><!-- /.box-body -->
+					</div><!-- /.box -->
+
+					<div class="box box-solid box-default">
+						<div class="box-header with-border">
+							<h3 class="box-title">Standard voters</h3>
+						</div><!-- /.box-header -->
+						<div class="box-body">
+							<div class="row" id="nonvip_list">
+								<div class="col-md-4" ng-bind-html="voters_nonvip[0]"></div>
+								<div class="col-md-4" ng-bind-html="voters_nonvip[1]"></div>
+								<div class="col-md-4" ng-bind-html="voters_nonvip[2]"></div>
+							</div>
+						</div><!-- /.box-body -->
+					</div><!-- /.box -->
+				</div>
+				<div id="votegrid" class="tab-pane" data-context-menu="/static/partials/gridContextMenu.html" context-menu-offset="{x:0,y:20,h:0}">
+					
+					<div id="canvas_container" class="full-height">
+						<canvas id="canvas" width="800" height="800" ng-mousemove="handleCanvasVoteMove($event)" style="display:none"></canvas>
+					</div>
+					<span  id="canvas-spinner" class="spinner fa fa-spinner fa-spin fa-3x fa-fw centered"></span>
+					<br />
+					<br />
+				</div>
+				
+				<div id="votetable" class="tab-pane">
+					<div id="votersgrid" xng-if="showuigrid" ui-grid="voters" ui-grid-cellNav ui-grid-edit class="voters-ui-grid"></div>
+				</div>
+				<div id="votesummary" class="tab-pane">
+					<div class="box box-solid box-success">
+						<div class="box-header with-border">
+							<h3 class="box-title">Only validated votes appear here</h3>
+						</div>
+						<div class="box-body">
+							<div class="row" id="vixp_list">
+								<div class="col-md-12">
+								<div class="" ng-repeat="summary in vote_summary">
+									Vote:{$ summary.vote_type $}: {$ summary.number $} voters (weight {$ summary.weight $})
+								</div>
+								</div>
+							</div>
+						</div><!-- /.box-body -->
+					</div><!-- /.box -->
+					 
+				</div>
+			
+			</div>
+		</div>
+	</div>
+	<span id="canvasVoteElement" data-toggle='tooltip' title="paola-ta"></span>
+</div>

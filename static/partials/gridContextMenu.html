@@ -1,0 +1,12 @@
+<div class="context-menu">
+	<span class="">Name: {$ rc.entity().name $} Card id: {$ rc.entity().card_id $}</span>
+	<ul class="menu-container">
+		<ul class="menu-group" ng-repeat="menus in rc.menuItems()">
+			<li ng-repeat="menu in menus">
+				<a href="#" ng-if="menu.implemented" ng-click="rc.menuFunc(menu.func)"><strong>{$ menu.menu $}</strong></a>
+				<a href="#" ng-if="!menu.implemented" ng-click="rc.menuFunc(menu.func)">{$ menu.menu $}</a>
+			</li>
+			
+		</ul>
+	</ul>
+</div>

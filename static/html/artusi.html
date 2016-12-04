@@ -1,0 +1,25 @@
+<div class="row">
+	<div class="col-md-12">
+		ARTUSI!
+	</div>
+	
+</div>
+<div class="row">
+	<div class="col-md-12">
+		<input type="file"  id="artusi-image" class="form-control" ng-model="artusi.image"   title="image" placeholder="iamge file">
+	</div>
+
+</div>
+<div class="row">
+	<div class="col-md-12">
+		<input type="submit" ng-click="upload()" class="form-control"  >
+	</div>
+
+</div>
+<div class="row" ng-if="artusi.solution_url">
+	<div class="col-md-12">
+		<!--<img data-ng-src="data:image/jpg;base64,{$ artusi.solution_image $}">-->
+		<img src="{$ artusi.solution_url $}" />.
+	</div>
+
+</div>

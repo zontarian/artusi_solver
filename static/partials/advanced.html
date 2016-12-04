@@ -1,0 +1,309 @@
+<div class="row">
+	<div class="col-md-6">
+		<div class="box box-solid box-default">
+			<div class="box-header with-border">
+				<h3 class="box-title">Setup / System</h3>
+
+				<div class="box-tools pull-right">
+					<button class="btn label label-warning" ng-click="debugData()">debug</button>
+					<button class="btn btn-dark " ng-disabled="!canSaveConfig()" ng-click="saveConfig()"><i
+							class="fa fa-floppy-o fa-fw"></i>Save
+					</button>
+					<!-- Buttons, labels, and many other things can be placed here! -->
+					<!-- Here is a label for example -->
+				</div><!-- /.box-tools -->
+			</div><!-- /.box-header -->
+			<div class="box-body">
+				<form name="formconfig">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Easyradio</h3>
+						</div>
+						<div class="panel-body">
+							<div class="row col-md-12">
+								<label for="isStandalone">is Standalone</label>
+								<input type="checkbox" icheck ng-model="easyradio.standalone"
+								       id="isStandalone">
+							</div>
+							<div class="row col-md-12" ng-if="easyradio.standalone != true">
+								<div class="row">
+								<div class="col-md-4">
+									<label for="easyvote_url">easyvoteUrl</label>
+								</div>
+								<div class="col-md-8">
+									<input type="text" ng-model="easyradio.easyvote_url" class="form-control" id="easyvote_url" />
+								</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Meeting</h3>
+						</div>
+						<div class="panel-body">
+							<div class="col-md-6">
+								<label for="meetingType">Type</label>
+								<select id="meetingType" class="form-control" ng-model="meeting.type"
+								        ng-options="item.value as item.label for item in meetingTypes">
+								</select>
+							</div>
+							<div class="col-md-6">
+								<label for="meetingId">ID</label>
+								<input type="number" ng-model="meeting.id" class="form-control" id="meetingId" />
+							</div>
+						</div>
+					</div>
+					<div class="panel">
+
+						<div class="row">
+							<div class="col-md-4">
+								<label for="trackingMode">Tracking mode</label>
+								<select id="trackingMode" class="form-control" ng-model="setup.tracking_mode"
+								        ng-options="item.value as item.label for item in trackingModes">
+								</select>
+							</div>
+							<div class="col-md-4">
+								<label for="pollTime">Poll time: <span class="">{$ setup.poll_time $}</span>ms</label>
+								<slider slideritem ng-model="setup.poll_time" min="500" max="20000" step="500"
+								        value=" "  id="pollTime" class="form-control" />
+
+							</div>
+							<div class="col-md-4">
+								<label for="pcBaseTimeout">PCBase timeout <span class="">{$ setup.pcbase_timeout $}</span>ms</label>
+								<slider slideritem ng-model="setup.pcbase_timeout" min="0" max="20000" step="500"
+								        value=" "   id="pcBaseTimeout" class="form-control" />
+							</div>
+
+						</div>
+					</div>
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Vote / System</h3>
+						</div>
+						<div class="panel-body">
+							<form>
+								<div class="row">
+									<div class="col-md-6 form-group">
+										<label for="confirmInVote">Confirm in vote</label>
+										<select id="confirmInVote" class="form-control"
+										        ng-model="vote_system.confirm_in_vote"
+										        ng-options="item.value as item.label for item in confirmInVotes">
+										</select>
+									</div>
+									<div class="col-md-6 form-group">
+										<label for="confirmInPoll">Confirm in poll</label>
+										<select id="confirmInPoll" class="form-control"
+										        ng-model="vote_system.confirm_in_poll"
+										        ng-options="item.value as item.label for item in confirmInPolls">
+										</select>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-md-4">
+										<span class="">Televoter:</span>
+
+										<div class="form-group">
+											<label for="televoterCheck">Televoter check</label>
+											<input type="checkbox" icheck ng-model="vote_system.televoter_check"
+											       id="televoterCheck">
+										</div>
+
+										<!--<div class="form-group">-->
+											<!--<label for="voteSaveMode">Vote Save Mode</label>-->
+											<!--<select id="voteSaveMode" ng-model="vote_system.vote_save_mode"-->
+											        <!--class="form-control"-->
+											        <!--ng-options="item.value as item.label for item in voteSaveModes">-->
+											<!--</select>-->
+										<!--</div>-->
+									</div>
+									<div class="col-md-8">
+										<div class="form-group">
+											<span class="">Options in vote:</span>
+											<div class="form-group">
+												<input type="checkbox" icheck ng-model="vote_system.periodic_broadcast"
+												       id="periodicBroadcast">
+												<label for="periodicBroadcast">Periodic Broadcast</label>
+											</div>
+											<div class="form-group" ng-if="ui_control_show('vote_system__anonymous_vote')">
+												<input type="checkbox" icheck ng-model="vote_system.anonymous_vote"
+												       id="anonymousVote">
+												<label for="anonymousVote">Anonymous vote</label>
+											</div>
+											<div class="form-group" ng-if="ui_control_show('vote_system.dynamic_affiliation')">
+												<input type="checkbox" icheck ng-model="vote_system.dynamic_affiliation"
+												       id="tvtAffiliationInVote">
+												<label for="tvtAffiliationInVote">TVT Dynamic affiliation</label>
+											</div>
+											<div class="form-group">
+												<input type="checkbox" icheck ng-model="vote_system.auto_enable_disable"
+												       id="autoEnableDisable">
+												<label for="autoEnableDisable">Auto Enable Disable</label>
+											</div>
+											<!--<div class="form-group">-->
+												<!--<input type="checkbox" icheck ng-model="vote_system.boost_vote_collection"-->
+												       <!--id="boostVoteCollection">-->
+												<!--<label for="boostVoteCollection">Boost Vote Collection</label>-->
+											<!--</div>-->
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+
+				</form>
+			</div><!-- /.box-body -->
+		</div><!-- /.box -->
+	</div>
+	<div class="col-md-6">
+		<div class="box box-solid  box-primary collapsed-box">
+			<div class="box-header with-border">
+				<h3 class="box-title">Add televoter</h3>
+
+				<div class="box-tools pull-right">
+					<button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button>
+				</div><!-- /.box-tools -->
+			</div><!-- /.box-header -->
+			<div class="box-body">
+
+				<div class="row form-group">
+					<div class="col-md-7 row">
+						<label for="tvtName" class="col-sm-3 control-label">Name</label>
+
+						<div class="col-sm-9">
+							<input type="text" id="tvtName" ng-model="televoter.name" class="form-control">
+						</div>
+					</div>
+					<div class="col-md-5 row">
+						<label for="tvtId" class="col-sm-6 control-label">Televoter ID</label>
+
+						<div class="col-sm-6">
+							<input type="text" id="tvtId" ng-model="televoter.id" class="form-control">
+						</div>
+					</div>
+				</div>
+				<div class="row form-group">
+					<div class="col-md-4 row">
+						<label for="tvtBs" class="col-sm-4 control-label">Base Station</label>
+
+						<div class="col-sm-8">
+							<select id="tvtBs" ng-model="televoter.bs" class="form-control"
+							        ng-options="pcb.index as pcb.index+':'+pcb['host'] for pcb in pcbases">
+							</select>
+						</div>
+					</div>
+					<div class="col-md-4 row">
+						<label for="tvtSh" class="col-sm-4 control-label">Sh</label>
+
+						<div class="col-sm-8">
+							<input type="number" id="tvtSh" ng-model="televoter.sh" class="form-control  ">
+						</div>
+					</div>
+					<div class="col-md-4 row">
+						<label for="tvtVt" class="col-sm-4 control-label">Vt</label>
+
+						<div class="col-sm-8">
+							<input type="number" id="tvtVt" ng-model="televoter.vt" class="form-control">
+						</div>
+					</div>
+				</div>
+				<div class="row form-group">
+					<div class="col-md-3">
+						<label for="tvtVip">VIP</label>
+						<input type="checkbox" icheck ng-model="televoter.isVip" id="tvtVip">
+					</div>
+					<div class="col-md-6">
+						<label for="cardId">Card Id</label>
+						<input type="text" id="cardId" ng-model="televoter.cardId" class="form-control">
+					</div>
+					
+					<div class="col-md-3">
+						<button ng-click="addTelevoter()" class="btn btn-primary">Add Televoter</button>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+		<div class="box box-solid box-primary">
+			<div class="box-header">
+				<h3 class="box-title">Televoter messages</h3>
+
+				<div class="box-tools pull-right">
+					<button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+				</div><!-- /.box-tools -->
+			</div>
+			<div class="box-body">
+
+				<div class="row form-group">
+					<div class="col-xs-2">
+						<label for="messageTvtId">Card Id</label>
+						<input type="number" id="messageTvtId" class="form-control" ng-model="message.cardId"/>
+					</div>
+					<div class="col-xs-4">
+						<label for="messageCode">Message</label>
+						<select id="messageCode" ng-model="message.code" class="form-control"
+						        ng-options="item.value as item.label for item in messageCodes">
+						</select>
+					</div>
+					<div class="col-xs-2">
+						<label for="messageTimeValue">Time/Value</label>
+						<input type="number" id="messageTimeValue" class="form-control"
+						       ng-model="message.timeValue"/>
+					</div>
+					<div class="col-xs-2">
+						<label for="broadcast">Broadcast</label>
+						<input type="checkbox" icheck id="broadcast" class="form-control"
+						       ng-model="message.broadcast"/>
+					</div>
+					<div class="col-xs-2">
+						<label>&nbsp;</label>
+						<button class="btn btn-primary form-control" ng-disabled="!message.cardId && !message.broadcast" ng-click="sendMessage()">Send</button>
+					</div>
+				</div>
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<h3 class="panel-title">Send text message</h3>
+					</div>
+					<div class="panel-body row">
+						<div class="col-xs-6">
+							<textarea ng-model="message.text" id="messageText" class="form-control" maxlength="64"></textarea>
+							<label for="messageTimeout">Timeout in seconds after which text will disappear. Can be fractionary</label>
+							<input type="text" class="form-control" ng-model="message.time" id="messageTimeout" placeholder="timeout"/>
+ 						</div>
+
+						<div class="col-xs-6">
+
+							<div class="row">
+								<!--
+								<div class="col-md-4">
+									<button class="btn btn-default form-control" ng-click="alignText('left')"><i class="fa fa-align-left"></i></button>
+								</div>
+								<div class="col-md-4">
+									<button class="btn btn-default form-control" ng-click="alignText('center')"><i class="fa fa-align-justify"></i></button>
+								</div>
+								<div class="col-md-4">
+									<button class="btn btn-default form-control" ng-click="alignText('right')"><i class="fa fa-align-right"></i></button>
+								</div>
+								-->
+							</div>
+							<div class="row">
+								<div class="col-md-12">&nbsp;
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-md-12">
+									<label for="messageText">Send text message</label>
+									<button class="btn btn-primary form-control" ng-disabled="!message.cardId" ng-click="sendText()">Send text</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+	</div>
+</div>

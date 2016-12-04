@@ -1,0 +1,103 @@
+<div class="row">
+	<div class="col-md-12"><h1>Test API</h1></div>
+</div>
+<div class="row">
+	<div class="col-md-6">
+		<div class="row">
+			<div class="col-md-12">
+				<label for="api-select" class="control-label">Api URL</label>
+				<select id="api-select" ng-model="url" class="form-control" ng-change="selctedApi()">
+					<option ng-repeat="item in precompiledApis" value="{$ item.url$}">{$item.url $} <strong ng-if="item.comment"> -- {$ item.comment$}</strong></option>
+ 				</select>
+				<input type="text" class="form-control" placeholder="custom API" name="" ng-model="url" value="" />
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<label for="get" class="control-label">Api method: GET </label>
+				<input type="radio" name="method" value="get"  id="get"  ng-model="method">
+				<label for="post">POST </label>
+
+				<input type="radio" name="method" value="post" id="post" ng-model="method">
+
+
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<div class="row" ng-repeat="param in params">
+					<div class="col-md-1">
+						<a ng-click="removeParam($index)"><i class="fa fa-times-circle" style="color:red"></i></a>
+					</div>
+					<div class="col-md-3" ng-if="!param.precompiled">
+						<input type="text" class="form-control" ng-model="param.name" id="apiurl" placeholder="param name">
+					</div>
+					<div class="col-md-3" ng-if="param.precompiled">
+						<input type="hidden"   ng-model="param.name"  >{$ param.name $}
+					</div>
+					<div   ng-class="{'col-md-8' : param.type=='file', 'col-md-4': param.type!='file'}">
+						<input ng-if="!param.values && param.type!='boolean' && param.type!='file'"  type="text" class="form-control" ng-model="param.value" id="apivalue" title="{$ param.hint $}" placeholder="param value">
+						<select ng-if="param.values" class="form-control" ng-model="param.value" id="apivalue">
+							<option ng-repeat="value in param.values" value="{$value.value$}">{$ value.label $}</option>
+						</select>
+						<input ng-if="param.type=='boolean'" type="checkbox" ng-model="param.value" ng-checked="param.value" class=""/>
+						<input type="file" ng-if="param.type=='file'" class="form-control" ng-model="param.value" id="apivalue-{$ param.name $}" title="{$ param.hint $}" placeholder="param file">
+					</div>
+					<div class="col-md-4 form-inline" ng-if="!param.precompiled">
+						<input type="checkbox" id="isArray{$ $index $}" title="array" value="true" ng-model="param.isArray"/>
+						<label for="isArray{$ $index $}" title="array" >[..]</label>
+						&nbsp;
+						<input type="radio" name="type{$ $index $}" id="isString{$ $index $}" title="string" value="string" ng-model="param.type"/>
+						<label for="isString{$ $index $}" title="string" >txt</label>
+						&nbsp;
+						<input type="radio" name="type{$ $index $}" id="isNumeric{$ $index $}" title="numeric" value="numeric" ng-model="param.type"/>
+						<label for="isNumeric{$ $index $}" title="numeric" >12</label>
+						&nbsp;
+						<input type="radio" name="type{$ $index $}" id="isBoolean{$ $index $}" title="boolean" value="boolean" ng-model="param.type"/>
+						<label for="isBoolean{$ $index $}" title="boolean">T/F</label>
+					</div>
+					<div class="col-md-4" ng-if="param.precompiled">
+						<span ng-if="param.isArray">list of</span>
+						<span ng-if="param.type=='numeric'">number</span><span ng-if="param.type=='string'">string</span><span ng-if="param.isArray">s</span>
+						<br ng-if="param.hint" />
+						{$ param.hint $}
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">&nbsp;</div>
+		</div>
+		<div class="row">
+			<div class="col-md-6">
+				<a   ng-click="addParam()"><i class="fa fa-plus" style="color:green"></i></a>
+			</div>
+			<div class="col-md-6">
+				<button class="btn-primary btn" ng-click="testApi()">CALL API</button>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-6">
+		<div class="row">
+			<div class="col-md-12">
+				<div class="api-call">
+					<pre  >{$ apiCall $}</pre>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+
+				<div >
+					<pre class="api-result" ng-class="{'api-error': apiError}"><div class="box-tools pull-right">
+					<button class="btn btn-box-tool" ng-click="clearResults()">
+						<i class="fa fa-trash"></i>
+					</button>
+				</div>{$ apiResult $}</pre>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>

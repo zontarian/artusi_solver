@@ -15,4 +15,5 @@ The scanner and the solver can be used from the command line and contains minima
 
 At the moment the image is tailored o an iPhone 5c screen size, so 640x1136 pixels.
 
-
+Thanks to Adrian  for this tutorial to install OpenCV v3 and bindings to Python 3
+http://www.pyimagesearch.com/2015/07/20/install-opencv-3-0-and-python-3-4-on-ubuntu/

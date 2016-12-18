@@ -108,7 +108,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
                 self.write(response)
                 #delete after X minutes
                 loop = ioloop.IOLoop.current()
-                # loop.call_later(15, self.delete_temp_file, filename)
+                loop.call_later(15, self.delete_temp_file, filename)
             else:
                 self.set_header("Content-type", "image/jpeg")
                 self.set_header("Content-Disposition", "attachment; filename=artusi_solution.jpg")

@@ -191,15 +191,17 @@ class ElementScannerForArtusi:
         elif param == ElementScannerForArtusi.SENAPE_SQUARE_FORK:
             lower = np.array([20, 80, 80])
             upper = np.array([40, 255, 255])
+            lower = np.array([24, 80, 80])
+            upper = np.array([34, 255, 255])
             letter = 'f'
         elif param == ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT:
             lower = 0
             upper = 0
-            letter = '?'
+            letter = ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER
         elif param >= 10:
             lower = np.array([param - 10, 80, 80])
             upper = np.array([param + 10, 255, 255])
-            letter = '?'
+            letter = ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER
         else:
             raise ValueError("unkown param {} for _scanParamsFor!".format(param))
 
@@ -225,6 +227,9 @@ class ElementScannerForArtusi:
             return
 
         (lower, upper, letter) = self._scan_params_for(scan_type)
+
+        # blurred = cv2.GaussianBlur(self.hsv, (13, 13), 0)
+
         scan_image = cv2.inRange(self.hsv, lower, upper)
         if self.debug:
             showImage(scan_image, 0, 'Range {}'.format(scan_type))
@@ -236,6 +241,7 @@ class ElementScannerForArtusi:
         sd = ShapeDetector()
         # loop over the contours
         canvas = self.result
+        scratch = self.image.copy()
         for c in ccnts:
             # compute the center of the contour, then detect the name of the
             # shape using only the contour
@@ -257,8 +263,8 @@ class ElementScannerForArtusi:
             c = c.astype("float")
             c *= ratio
             c = c.astype("int")
-            cv2.drawContours(canvas, [c], -1, (0, 255, 0), 2)
-            cv2.putText(canvas, "{} a:{}".format(shape, area), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.drawContours(scratch, [c], -1, (0, 255, 0), 2)
+            cv2.putText(scratch, "{} a:{}".format(shape, area), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (255, 255, 255), 2)
 
             # get center of image ..
@@ -272,7 +278,8 @@ class ElementScannerForArtusi:
 
         # self.result = canvas
         if self.debug:
-            showImage(canvas, 0, 'Result {}'.format(scan_type))
+            print_matrix(self.matrix,"Result for {}".format(scan_type))
+            showImage(scratch, 0, 'Result {}'.format(scan_type))
 
     def scan_for_unknown(self, debug=False):
         step = 5
@@ -280,6 +287,10 @@ class ElementScannerForArtusi:
         good_iterations = 0
         max_hits = 0
         knwon_params = self._get_all_known_params()
+
+        debug_images = False
+        # debug_images = True
+
         for i in range(int(360/step)):
             lower = np.array([i * step    ,  80, 80])
             upper = np.array([i * step +20, 255, 255])
@@ -295,9 +306,14 @@ class ElementScannerForArtusi:
 
             letter = self.UNKNOWN_ELEMENT_LETTER
 
-            scan_image = cv2.inRange(self.hsv, lower, upper)
-            # if debug:
-            #     showImage(scan_image, 0, 'Range {}'.format(lower))
+            debug_image = self.hsv.copy()
+
+            blurred = cv2.GaussianBlur(debug_image, (13,13), 0)
+
+            # scan_image = cv2.inRange(self.hsv, lower, upper)
+            scan_image = cv2.inRange(blurred, lower, upper)
+            if debug_images:
+                showImage(scan_image, 0, 'Range unknown {}'.format(lower))
 
             cnts = cv2.findContours(scan_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             ccnts = cnts[0] if imutils.is_cv2() else cnts[1]
@@ -320,31 +336,37 @@ class ElementScannerForArtusi:
                     continue
 
                 area = M["m00"]# .GetCentralMoment(moments, 0, 0)
-                if area < 500 or area > 10000:
-                    continue
 
                 shape = sd.detect(c)
+
+                #average..
+                square = WIDTH / 8
+                col = int(cX / square)
+                row = int(cY / square)
+
+                if area < 500 or area > 10000:
+                    if debug_images:
+                        logging.debug("Center of SKIPPED image is {} {} a:{}-> {} {}  ".format(cX, cY, area, row, col))
+
+                    continue
 
                 c = c.astype("float")
                 c *= ratio
                 c = c.astype("int")
-                cv2.drawContours(canvas, [c], -1, (0, 255, 0), 2)
-                cv2.putText(canvas, "{}".format(shape), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
+                cv2.drawContours(debug_image, [c], -1, (0, 255, 0), 2)
+                cv2.putText(debug_image, "{}".format(shape), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, (255, 255, 255), 2)
 
-                #average..
-                square = WIDTH / 8
-                c = int( cX / square)
-                r = int(cY / square)
-                prev = self.matrix[r][c]
-                if debug:
-                    logging.debug("Center of image is {} {} a:{}-> {} {} ? {}  ".format(cX, cY, area, r, c, prev))
+                prev = self.matrix[row][col]
+                if debug_images:
+                    logging.debug("Center of image is {} {} a:{}-> {} {} ? {}  ".format(cX, cY, area, row, col, prev))
                 if prev and prev != ' ':
                     overlapped += 1
                 count += 1
-                matrix[r][c] = letter
-                # self.matrix[r][c] = letter
+                matrix[row][col] = letter
 
+            if debug_images:
+                showImage(debug_image, title="Step")
             # at the end of loop over shapes, add 1 to identified cell (we can have two or more path in cell!)
 
             if 2 < count < 50 and overlapped < 5:
@@ -374,7 +396,7 @@ class ElementScannerForArtusi:
         matrix = create_matrix()
         for r in range(8):
             for c in range(8):
-                if unknown_matrix[r][c] == max_hits:
+                if unknown_matrix[r][c] > 2: #== max_hits:
                     matrix[r][c] = letter
 
         return matrix
@@ -406,14 +428,14 @@ class ElementScannerForArtusi:
     def superimpose_solution(self, image, start_row, start_col, end_row, end_col, start_x, start_y, width):
         img = image.copy()
         # now draw
-        x = int(start_x + start_row * width)
-        y = int(start_y + start_col * width)
+        x = int(start_x + start_col * width)
+        y = int(start_y + start_row * width)
         width = int(width)
         # get center
         cv2.rectangle(img, (x,y),(x+width, y+width),(0,255,0), 10)
 
-        x = int(start_x + end_row * width)
-        y = int(start_y + end_col * width)
+        x = int(start_x + end_col * width)
+        y = int(start_y + end_row * width)
         # get center
         cv2.rectangle(img, (x,y),(x+width, y+width),(0,255,0), 10)
 
@@ -482,11 +504,28 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    logging.debug("Images {}".format(files))
+    logging.debug("Images {}, debug={}, debug_unknown={}".format(files, args.debug, args.debug_unknown))
 
     for f in files:
         # detect
         img = cv2.imread(f)
+
+        # check size
+        (h, w, _) = img.shape
+        sw, sh = (640,1136)
+        ratio = h / w
+        if w != sw:
+            _h = int(ratio * sw)
+            if _h != sh and abs(_h - sh) > 4:
+                # if h != sh or w != sw:
+                logging.error("Screen size is {},{} resized to {},{} different from {},{}. Ratio is {}".format(
+                    w, h, sw, _h, sw, sh, ratio
+                ))
+                continue
+
+        dim = (sw, sh)
+        img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+
         # crop
         image = img[START_Y:END_Y, START_X:END_X]
 
@@ -494,11 +533,13 @@ if __name__ == '__main__':
         if args.debug:
             scanner.set_debug(True)
 
-        scanner.scan()
-        scanner.scan_for(ElementScannerForArtusi.AQUA_SQUARE_CROSS)
-        scanner.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON)
-        scanner.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON)
+        # scanner.scan()
+        scanner.scan_for(ElementScannerForArtusi.AQUA_SQUARE_CROSS )
+        scanner.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON )
+        scanner.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON )
         scanner.scan_for(ElementScannerForArtusi.SENAPE_SQUARE_FORK)
+        if args.debug:
+            print_matrix(scanner.matrix, "Scan befor unknown")
         scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown)
         # for r in range(36):
         #     param = (r + 1 ) * 10

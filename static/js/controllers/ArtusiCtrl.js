@@ -7,6 +7,7 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         image:null,
         solution_image:null,
         solution_url:"",
+        is_solution:false
     };
     $scope.image_arrived = false;
     //
@@ -25,31 +26,29 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
 
         });
         $scope.image_arrived = false;
-        // $scope.artusi={
-        //     image:null,
-        //     solution_image:null,
-        //     solution_url:"",
-        // };
     };
 
     $scope.solve = function(){
 
         callSolver(false, function(success){
-            // $scope.artusi={
-            //     // image:null,
-            //     // solution_image:null,
-            //     // solution_url:"",
-            // };
             $scope.artusi.image=null;
+            $scope.artusi.is_solution=true;
         });
         $scope.image_arrived = false;
-
     };
 
     $scope.rescan = function(){
         console.log($scope.artusi)
-    }
+    };
 
+    $scope.reset = function(){
+        $scope.artusi={
+            image:null,
+            solution_image:null,
+            solution_url:"",
+            is_solution:false
+        };
+    };
 
     function callSolver(show_step, callback){
         $scope.artusi.solution_url = '/static/css/loading.gif';

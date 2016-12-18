@@ -6,5 +6,5 @@ opencv*/*
 .idea/*
 .DS_Store
 *.iml
-
+static/tmp/*
 

@@ -147,9 +147,9 @@ class ElementScannerForArtusi:
         self.debug = False
         self.matrix = create_matrix()
 
-    def crop_image(self, startx, starty, endx, endy):
+    def crop_image(self, startx=START_X, starty=START_Y, endx=END_X, endy=END_Y):
         # crop
-        self.image = self.image[START_Y:END_Y, START_X:END_X]
+        self.image = self.image[starty:endy, startx:endx]
         self.result = self.image.copy()
         self.hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
 
@@ -161,17 +161,17 @@ class ElementScannerForArtusi:
         self.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON)
         self.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON)
         self.scan_for(ElementScannerForArtusi.SENAPE_SQUARE_FORK)
-        self.scan_for(ElementScannerForArtusi.UNKOWN_SQUARE_ELEMENT)
+        self.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT)
 
 
     PINK_SQUARE_BIG_SPOON = 1
     GREEN_SQUARE_SMALL_SPOON = 2
     AQUA_SQUARE_CROSS = 3
     SENAPE_SQUARE_FORK = 4
-    UNKOWN_SQUARE_ELEMENT = 9
+    UNKNOWN_SQUARE_ELEMENT = 9
     # don't go above 9. 10 and above are reserved for auto-discovery
 
-    UNKOWN_ELEMENT_LETTER = '?'
+    UNKNOWN_ELEMENT_LETTER = '?'
 
     def _scan_params_for(self, param):
         if param == ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON:
@@ -192,7 +192,7 @@ class ElementScannerForArtusi:
             lower = np.array([20, 80, 80])
             upper = np.array([40, 255, 255])
             letter = 'f'
-        elif param == ElementScannerForArtusi.UNKOWN_SQUARE_ELEMENT:
+        elif param == ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT:
             lower = 0
             upper = 0
             letter = '?'
@@ -216,12 +216,12 @@ class ElementScannerForArtusi:
 
     def scan_for(self, scan_type, debug=False):
         # convert to hsv
-        if scan_type == ElementScannerForArtusi.UNKOWN_SQUARE_ELEMENT:
+        if scan_type == ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT:
             mat = self.scan_for_unknown(debug)
             for r in range(8):
                 for c in range(8):
-                    if mat[r][c] == self.UNKOWN_ELEMENT_LETTER:
-                        self.matrix[r][c] = self.UNKOWN_ELEMENT_LETTER
+                    if mat[r][c] == self.UNKNOWN_ELEMENT_LETTER:
+                        self.matrix[r][c] = self.UNKNOWN_ELEMENT_LETTER
             return
 
         (lower, upper, letter) = self._scan_params_for(scan_type)
@@ -293,7 +293,7 @@ class ElementScannerForArtusi:
             if skip:
                 continue
 
-            letter = self.UNKOWN_ELEMENT_LETTER
+            letter = self.UNKNOWN_ELEMENT_LETTER
 
             scan_image = cv2.inRange(self.hsv, lower, upper)
             # if debug:
@@ -383,6 +383,7 @@ class ElementScannerForArtusi:
         img = image.copy()
         # now draw
         width = ((endx - startx) / 8)
+        overlay = image.copy()
         for r in range(8):
             for c in range(8):
                 let = matrix[r][c]
@@ -391,9 +392,14 @@ class ElementScannerForArtusi:
                 x = int(startx + c * width)
                 y = int(starty + r * width)
                 # get center
-                cv2.rectangle(img, (x,y),(int(x+width), int(y+width)),(0,255,0), 2)
-                cv2.putText(img, "{}".format(let), (int(x+width/3-4), int(y+2*width/3)), cv2.FONT_HERSHEY_SIMPLEX,
+                if let == ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER:
+                    cv2.rectangle(overlay, (x, y), (int(x+width), int(y+width)), (0, 255, 0), -1)
+                else:
+                    cv2.rectangle(img, (x, y), (int(x+width), int(y+width)), (0, 255, 0), 2)
+                    cv2.putText(img, "{}".format(let), (int(x+width/3-4), int(y+2*width/3)), cv2.FONT_HERSHEY_SIMPLEX,
                             2, (0, 0, 255), 2)
+
+        cv2.addWeighted(overlay, 0.5, img, 1 - 0.5, 0, img)
 
         return img
 
@@ -493,7 +499,7 @@ if __name__ == '__main__':
         scanner.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON)
         scanner.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON)
         scanner.scan_for(ElementScannerForArtusi.SENAPE_SQUARE_FORK)
-        scanner.scan_for(ElementScannerForArtusi.UNKOWN_SQUARE_ELEMENT, debug=args.debug_unknown)
+        scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown)
         # for r in range(36):
         #     param = (r + 1 ) * 10
         #     scanner.scan_for(param)

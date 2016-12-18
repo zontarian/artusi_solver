@@ -20,24 +20,53 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         return window.btoa( binary );
     }
 
-    $scope.test = function () {
-        $scope.upload();
+    $scope.autosubmit = function () {
+        callSolver(true, function(success){
+
+        });
         $scope.image_arrived = false;
+        // $scope.artusi={
+        //     image:null,
+        //     solution_image:null,
+        //     solution_url:"",
+        // };
+    };
+
+    $scope.solve = function(){
+
+        callSolver(false, function(success){
+            // $scope.artusi={
+            //     // image:null,
+            //     // solution_image:null,
+            //     // solution_url:"",
+            // };
+            $scope.artusi.image=null;
+        });
+        $scope.image_arrived = false;
+
+    };
+
+    $scope.rescan = function(){
+        console.log($scope.artusi)
     }
 
-    $scope.upload = function(){
 
+    function callSolver(show_step, callback){
         $scope.artusi.solution_url = '/static/css/loading.gif';
-        ArtusiAPI.upload('#artusi-image').then(function(data){
+        ArtusiAPI.upload('#artusi-image', show_step).then(function(data){
             console.log("api called",data.url);
             $scope.artusi.solution_url = data.url;
             $scope.image_arrived = true;
+            if(callback)
+                callback(true)
         },function(err){
             console.error(err);
             alertify.error("Error:<br />"+err.data.errorCode)
             $scope.image_arrived = false;
             $scope.artusi.solution_url = null;
             $scope.artusi.image = null;
+            if(callback)
+                callback(false)
         });
     }
 

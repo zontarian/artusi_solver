@@ -7,11 +7,18 @@
 <div class="row">
 	<div class="col-sm-6">
 		<input data-file type="file" id="artusi-image" class="form-control" ng-model="artusi.image"
-		       title="image" placeholder="iamge file" ng-change="test('change')">
+		       title="image" placeholder="image file" ng-change="autosubmit('change')">
 	</div>
-  
-
 </div>
+<div class="row" ng-if="artusi.image && artusi.solution_url">
+	<div class="col-xs-6">
+		<button ng-click="solve()" class="form-control btn btn-primary">OK</button>
+	</div>
+	<div class="col-xs-6">
+		<button ng-click="rescan()" class="form-control btn btn-danger">WRONG</button>
+	</div>
+</div>
+
 <div class="row" ng-if="artusi.solution_url">
 	<div class="col-md-12">
 		<!--<img data-ng-src="data:image/jpg;base64,{$ artusi.solution_image $}">-->

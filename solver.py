@@ -76,7 +76,7 @@ class Matrix:
         print("")
         if header:
             print(" -- {} -- ".format(header))
-        print("  01234568 ")
+        print("  01234568 \n")
         for r in range(8):
             print("{} ".format(r), end="")
             for c in range(8):
@@ -93,7 +93,7 @@ class Matrix:
         string_buffer.append("")
         if header:
             string_buffer.append(" -- {} -- ".format(header))
-        string_buffer.append("  01234568 ")
+        string_buffer.append("  01234568 \n")
         for r in range(8):
             line_buffer= []
             line_buffer.append("{} ".format(r) )
@@ -143,7 +143,7 @@ class ArtusiSolver:
         self.working_matrix = Matrix.create_matrix()
         self.starting_point = []
         self.ingredient = '?'
-        self.threshold = 5
+        self.threshold = 4
         self.best_solutions = []
 
     def solve(self, ingredient=None, threshold=5):
@@ -191,10 +191,13 @@ class ArtusiSolver:
             logging.error("Cannot move beyond matrix boundary")
             return
 
-        self.swap_cell_solve(row, col, dr, dc)
+        self.swap_cell_solve(row, col, dr, dc, _debug=True)
 
     def get_best_solutions(self):
         return sorted(self.best_solutions, key=lambda sol: sol.remaining_ingredient)
+
+    def compact(self):
+        self.__solve(self.matrix, True)
 
     def __solve(self, m, debug=False, deleting=False):
         '''
@@ -232,7 +235,7 @@ class ArtusiSolver:
                         #copy temp list in list
                         if acc == 3:
                             list_delenda_row.extend(temp_list_delenda[:])
-                        elif temp_list_delenda and xc != ' ':
+                        elif temp_list_delenda and cell != ' ':
                             list_delenda_row.append((r, -1)) #all the row
                     temp_list_delenda=[]
                     if xc != ' ':
@@ -269,7 +272,7 @@ class ArtusiSolver:
                     if acc >= 3:
                         if acc == 3:
                             list_delenda_col.extend(temp_list_delenda[:])
-                        elif temp_list_delenda and xc != ' ':
+                        elif temp_list_delenda and cell != ' ':
                             # delelte all row
                             list_delenda_col.append((-1, c)) #all the row
                     temp_list_delenda=[]
@@ -390,8 +393,10 @@ class ArtusiSolver:
         ret = self.__solve(newmatrix, _debug)
 
         (c, t) = Matrix.count_items(self.working_matrix, self.ingredient)
-        if c < self.threshold:
+        # self.threshold = 100
+        if c < self.threshold or _debug:
             logging.info("solving swap {} {} - {} {} -> {} / {}".format(row, col, newrow, newcol, c, t) )
+            # logging.info(Matrix.print_matrix(self.working_matrix))
             sol = Solution()
             sol.start_row = row
             sol.start_col = col
@@ -405,7 +410,7 @@ class ArtusiSolver:
         #     print("")
 
 
-def solve_artusi(image_data, show=False, show_step=False, ingredient='?'):
+def solve_artusi(image_data, show=False, show_step=False, ingredient='?', no_console=False):
     scan = scanner.ElementScannerForArtusi(image_data)
     scan.crop_image(scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y)
     scan.scan()
@@ -421,8 +426,9 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?'):
         if show_step:
             return img
 
-        cv2.imshow("autoscan", img)
-        cv2.waitKey(0)
+        if not no_console:
+            cv2.imshow("autoscan", img)
+            cv2.waitKey(0)
 
     # now pass image to scann
     solver = ArtusiSolver(scan.matrix)
@@ -434,7 +440,7 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?'):
     for sol in sols:
         logging.debug("Solution:{}".format(sol))
 
-    img = scan.superimpose_solution(image, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
+    img = scan.superimpose_solution(image_data, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
                                     scanner.START_X, scanner.START_Y, (scanner.END_X - scanner.START_X) / 8 )
     return img
 
@@ -474,7 +480,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--test', action='store_true', default=False, help="test")
+    # parser.add_argument('--test', action='append', dest="test_swap", default=[], help="test swap", nargs="3")
 
     parser.add_argument('--debug', action='store_true', default=False, help="debug showing images")
     parser.add_argument('--debug-unknown', action='store_true', default=False, help="debug unkown auto-detection")
@@ -488,12 +494,22 @@ if __name__ == '__main__':
 
     parser.add_argument('ingredient', metavar='ingredient', default='?', help='ingredient to collect', nargs='?')
 
+
     args = parser.parse_args()
+
+    # logger.info("TEst {}".format(args.test_swap))
 
     if args.image:
         # do scanner
         logging.debug("Image {}".format(args.image.name))
         image = cv2.imread(args.image.name)
+
+        # resize image if not proper size
+        (height, width, _) = image.shape
+        if width != 640:
+            dim = (640, 1138)
+            image = cv2.resize(image, dim, interpolation=cv2.INTER_CUBIC)
+
         scan = scanner.ElementScannerForArtusi(image)
         scan.crop_image(scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y)
         scan.scan()
@@ -527,6 +543,8 @@ if __name__ == '__main__':
         Matrix.print_matrix(matrix)
 
         solver = ArtusiSolver(matrix)
+        # solver.test_swap(0,6,'d')
+        # solver.compact()
         solver.solve(ingredient=args.ingredient)
 
 

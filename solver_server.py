@@ -22,6 +22,14 @@ SCREENSHOT_SIZES = {
     'iphone5': (640, 1136)
 }
 
+def print_stack_trace(exception, msg="Exception"):
+    logging.error("{}: {}".format(msg, str(exception)))
+    import traceback, sys
+    logging.error("-"*60)
+    traceback.print_exc(file=sys.stdout)
+    logging.error("-"*60)
+
+
 class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
 
 
@@ -45,6 +53,8 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             logging.debug("Handling upload of Artusi image")
             as_url = self.get_argument('as_url', False) == 'true'
             img_data = self.request.files['image_file'][0]['body']
+            show_step = self.get_argument('show_step', False) == 'true'
+
             if not img_data:
                 imgfile_b64 = self.get_json_argument('img_data', required=True)
                 img_data = base64.b64decode(imgfile_b64)
@@ -61,14 +71,25 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
 
             (h, w, _) = img_np.shape
             sw, sh = SCREENSHOT_SIZES['iphone5']
-            if h != sh or w != sw:
-                self.write(self.create_error_response('screenshot of wrong size'))
-                return
+            ratio = h / w
+            if w != sw:
+                _h = int(ratio * sw)
+                if _h != sh and abs(_h - sh) > 4:
+                # if h != sh or w != sw:
+                    logging.error("Screen size is {},{} resized to {},{} different from {},{}. Ratio is {}".format(
+                        w, h, sw, _h, sw, sh, ratio
+                    ))
+                    self.write(self.create_error_response('screenshot of wrong size '))
+                    return
+
+            dim = (sw, sh)
+            img_np = cv2.resize(img_np, dim, interpolation=cv2.INTER_CUBIC)
+
             import time
-            time.sleep(2)
+            # time.sleep(2)
 
             # now do solve..
-            image = solver.solve_artusi(img_np, True, show_step=True)
+            image = solver.solve_artusi(img_np, True, show_step=show_step, no_console=True)
 
             retval, buf = img_data = cv2.imencode('.jpg', image)
             if not retval:
@@ -87,7 +108,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
                 self.write(response)
                 #delete after X minutes
                 loop = ioloop.IOLoop.current()
-                loop.call_later(5, self.delete_temp_file, filename)
+                # loop.call_later(15, self.delete_temp_file, filename)
             else:
                 self.set_header("Content-type", "image/jpeg")
                 self.set_header("Content-Disposition", "attachment; filename=artusi_solution.jpg")
@@ -98,6 +119,7 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             return
 
         except Exception as e:
+            print_stack_trace(e,'Generic error solving')
             self.write(self.create_error_response("Generic error: {}".format(e)))
 
     def delete_temp_file(self, file):

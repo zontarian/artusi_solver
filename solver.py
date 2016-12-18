@@ -507,7 +507,7 @@ if __name__ == '__main__':
         # resize image if not proper size
         (height, width, _) = image.shape
         if width != 640:
-            dim = (640, 1138)
+            dim = (640, 1136)
             image = cv2.resize(image, dim, interpolation=cv2.INTER_CUBIC)
             logging.debug("IMage resized to {}".format(dim))
 

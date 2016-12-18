@@ -23,11 +23,10 @@
 		<button ng-click="reset()" class="form-control btn btn-primary">OK, DONE!</button>
 	</div>
 </div>
-
-<div class="row" ng-if="artusi.solution_url">
+<div class="row" ng-if="artusi.solution_url" >
 	<div class="col-md-12">
-		<!--<img data-ng-src="data:image/jpg;base64,{$ artusi.solution_image $}">-->
-		<img ng-src="{$ artusi.solution_url $}" class="ximg_solution" ng-class="{img_solution: image_arrived, img_loading: !image_arrived}"/>.
+		<img ng-src="{$ artusi.solution_url $}" class="ximg_solution" xid="server-image" ng-class="{img_solution: image_arrived, img_loading: !image_arrived}"/>
+		
 	</div>
 
 </div>

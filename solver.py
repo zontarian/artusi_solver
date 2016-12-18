@@ -88,22 +88,36 @@ class Matrix:
         print("  ========\n")
 
     @staticmethod
-    def matrix_to_string(m, header=None, numeric=False):
+    def matrix_to_string(m, header=None, numeric=False, bare=True):
         string_buffer = []
-        string_buffer.append("")
-        if header:
+        if not bare:
+            string_buffer.append("")
+
+        if header and not bare:
             string_buffer.append(" -- {} -- ".format(header))
-        string_buffer.append("  01234568 \n")
+        if not bare:
+            string_buffer.append("  01234568 \n")
         for r in range(8):
             line_buffer= []
-            line_buffer.append("{} ".format(r) )
+            if not bare:
+                line_buffer.append("{} ".format(r))
             for c in range(8):
                 if m[r][c] is None:
-                    line_buffer.append('-' )
+                    if not bare:
+                        line_buffer.append('-')
+                    else:
+                        line_buffer.append('.')
                 else:
-                    line_buffer.append(m[r][c])
+                    if bare and m[r][c] == ' ':
+                        line_buffer.append('.')
+                    else:
+                        line_buffer.append(m[r][c])
+
             string_buffer.append("".join(line_buffer))
-        string_buffer.append("  ========")
+
+        if not bare:
+            string_buffer.append("  ========")
+
         return "\n".join(string_buffer)
 
     @staticmethod

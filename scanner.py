@@ -9,6 +9,7 @@ import sys
 import cv2
 import argparse
 import logging
+import os
 
 
 TRAINING_IMAGES = [
@@ -19,20 +20,27 @@ TRAINING_IMAGES = [
     "IMG_1389.PNG",
 ]
 
+ASSETS_DIR = 'assets'
+
 IMAGE = 'IMG_1387.PNG'
 
-START_X = 25
+START_X = 20
 START_Y = 85
 
-WIDTH = 615 - 25
-HEIGHT = 675 - 85
+WIDTH = 595
+HEIGHT = WIDTH
 
 END_X = START_X + WIDTH
 END_Y = START_Y + HEIGHT
 
 logger = logging.getLogger(__package__)
 
-
+def print_stack_trace(exception, msg="Exception"):
+    logging.error("{}: {}".format(msg, str(exception)))
+    import traceback, sys
+    logging.error("-"*60)
+    traceback.print_exc(file=sys.stdout)
+    logging.error("-"*60)
 # senape1 = np.uint8([[[70,185,194 ]]])
 # hsv_senape1 = cv2.cvtColor(senape1,cv2.COLOR_BGR2HSV)
 # senape2 = np.uint8([[[66,222,224 ]]])
@@ -87,10 +95,37 @@ class ShapeDetector:
 
 
 def showImage(img, delay=0, title=''):
-    cv2.imshow(title, img)
-    if delay < 0:
-        delay = 10
-    cv2.waitKey(delay * 1000)
+    try:
+        cv2.imshow(title, img)
+        if delay <0:
+            delay = 10
+        cv2.waitKey(delay * 1000)
+        cv2.destroyAllWindows()
+    except Exception as e:
+        logger.error("Cannot display image {}: {}".format(title, e))
+
+
+def showImages(imgs, delay=0, title=''):
+    try:
+        i = 0
+        offset = 50
+        for img in imgs:
+            dims = img.shape
+            # print("X={}".format(str(dims)))
+            w = dims[1]
+            window_name = "{}:{}".format(title, i)
+            cv2.imshow(window_name, img)
+            cv2.moveWindow(window_name, offset+w*i, 0)
+            i += 1
+
+        if delay < 0:
+            delay = 10
+        cv2.waitKey(delay * 1000)
+        cv2.destroyAllWindows()
+
+    except Exception as e:
+        logger.error("Cannot display image {}: {}".format(title, e))
+        print_stack_trace(e,"Error displaying images")
 
 def create_matrix(numeric=False):
     matrix = []
@@ -146,6 +181,8 @@ class ElementScannerForArtusi:
         self.hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
         self.debug = False
         self.matrix = create_matrix()
+        self.scaling = 1
+        self.masked = None
 
     def crop_image(self, startx=START_X, starty=START_Y, endx=END_X, endy=END_Y):
         # crop
@@ -156,56 +193,82 @@ class ElementScannerForArtusi:
     def set_debug(self, debug):
         self.debug = debug
 
+    def image_for_unkown(self):
+        if self.masked is not None:
+            return self.masked.copy()
+
+        return self.hsv.copy()
+
     def scan(self):
         self.scan_for(ElementScannerForArtusi.AQUA_SQUARE_CROSS)
         self.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON)
         self.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON)
         self.scan_for(ElementScannerForArtusi.SENAPE_SQUARE_FORK)
-        self.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT)
+        # self.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT)
+
+        self.scan_for(ElementScannerForArtusi.BACKGROUND_SQUARE)
+        self.fill_missing()
 
 
     PINK_SQUARE_BIG_SPOON = 1
     GREEN_SQUARE_SMALL_SPOON = 2
     AQUA_SQUARE_CROSS = 3
     SENAPE_SQUARE_FORK = 4
-    UNKNOWN_SQUARE_ELEMENT = 9
+    _SQUARE_TRUE_ELEMENTS = 6 #upper bound
+    UNKNOWN_SQUARE_ELEMENT = 7
+    BACKGROUND_SQUARE  = 8
+
     # don't go above 9. 10 and above are reserved for auto-discovery
 
     UNKNOWN_ELEMENT_LETTER = '?'
+    BACKGROUND_LETTER = '_'
 
     def _scan_params_for(self, param):
         if param == ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON:
             lower = np.array([145, 50, 50])
             upper = np.array([165, 255, 255])
             letter = 'k'
+            template = 'spoon.png'
         elif param == ElementScannerForArtusi.AQUA_SQUARE_CROSS:
             lower = np.array([90, 80, 80])
             upper = np.array([110, 255, 255])
             letter = 'x'
+            template = 'cross.png'
         elif param == ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON:
             # lower = np.array([110, 50, 50])
             # upper = np.array([130, 255, 255])
             lower = np.array([60, 50, 50])
             upper = np.array([80, 255, 255])
             letter = 'c'
+            template = 'coffee_spoon.png'
         elif param == ElementScannerForArtusi.SENAPE_SQUARE_FORK:
-            lower = np.array([20, 80, 80])
-            upper = np.array([40, 255, 255])
+            # lower = np.array([20, 80, 80])
+            # upper = np.array([40, 255, 255])
             lower = np.array([24, 80, 80])
-            upper = np.array([34, 255, 255])
+            upper = np.array([32, 255, 255])
             letter = 'f'
+            template = 'fork.png'
         elif param == ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT:
             lower = 0
             upper = 0
             letter = ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER
+            template = None
+        elif param == ElementScannerForArtusi.BACKGROUND_SQUARE:
+            lower = np.array([0, 20, 10])
+            upper = np.array([20, 200, 220])
+            letter = ' '
+            template = None
         elif param >= 10:
-            lower = np.array([param - 10, 80, 80])
-            upper = np.array([param + 10, 255, 255])
+            # background 36,47,84
+            # background 33,65,80
+            lower = np.array([param - 10, 20, 10])
+            upper = np.array([param + 10, 200, 220])
             letter = ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER
+            template = None
         else:
-            raise ValueError("unkown param {} for _scanParamsFor!".format(param))
+            raise ValueError("unknown param {} for _scanParamsFor!".format(param))
 
-        return lower, upper, letter
+        return lower, upper, letter, template
 
     def _get_all_known_params(self):
         params = []
@@ -216,23 +279,57 @@ class ElementScannerForArtusi:
         # params.append(self._scan_params_for(self.AQUA_SQUARE_CROSS))
         return params
 
-    def scan_for(self, scan_type, debug=False):
+    def scan_for(self, scan_type, debug=False, debug_unknown=False):
         # convert to hsv
         if scan_type == ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT:
-            mat = self.scan_for_unknown(debug)
+            mat = self.scan_for_unknown(debug, debug_unknown)
             for r in range(8):
                 for c in range(8):
                     if mat[r][c] == self.UNKNOWN_ELEMENT_LETTER:
                         self.matrix[r][c] = self.UNKNOWN_ELEMENT_LETTER
             return
 
-        (lower, upper, letter) = self._scan_params_for(scan_type)
+        (lower, upper, letter, template_file) = self._scan_params_for(scan_type)
+
+        if scan_type < ElementScannerForArtusi._SQUARE_TRUE_ELEMENTS:
+            template = cv2.imread(os.path.join(ASSETS_DIR, template_file), cv2.IMREAD_GRAYSCALE)
+
+            self.scan_for_template(template,letter, False)
+            if self.debug or debug:
+                print_matrix(self.matrix,"Result for {}".format(scan_type))
+
+            return
+
+        # else do scan..
 
         # blurred = cv2.GaussianBlur(self.hsv, (13, 13), 0)
 
         scan_image = cv2.inRange(self.hsv, lower, upper)
         if self.debug:
             showImage(scan_image, 0, 'Range {}'.format(scan_type))
+
+        # monte carlo scatter
+        matrix = create_matrix()
+        import random
+        square = int(WIDTH / 8)
+        for r in range(8):
+            for c in range(8):
+                # scatter 100 point
+                hit = 0
+                for i in range(100):
+                    x = square * c + random.randint(0, square)
+                    y = square * r + random.randint(0, square)
+                    b = scan_image[y, x]
+                    if b > 240:
+                        hit += 1
+                        # print(h,s,v)
+                if hit > 60:
+                    matrix[r][c] = ElementScannerForArtusi.BACKGROUND_LETTER
+                    self.matrix[r][c] = ElementScannerForArtusi.BACKGROUND_LETTER
+
+        print_matrix(matrix, 'SCATTER for lower {}'.format(lower))
+        return
+
 
         cnts = cv2.findContours(scan_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         ccnts = cnts[0] if imutils.is_cv2() else cnts[1]
@@ -270,7 +367,7 @@ class ElementScannerForArtusi:
             # get center of image ..
             #average..
             square = WIDTH / 8
-            c = int( cX / square)
+            c = int(cX / square)
             r = int(cY / square)
             if self.debug:
                 logging.debug("Center of image is {} {} a:{}-> {} {}  ".format(cX, cY, area, r, c))
@@ -281,21 +378,33 @@ class ElementScannerForArtusi:
             print_matrix(self.matrix,"Result for {}".format(scan_type))
             showImage(scratch, 0, 'Result {}'.format(scan_type))
 
-    def scan_for_unknown(self, debug=False):
+
+    def scan_for_background(self, debug=False):
         step = 5
+        showImage(self.hsv,0,'ss')
+        for i in range(int(180/step)):
+            self.scan_for(10+i*step, debug, True)
+
+
+    def scan_for_unknown(self, debug=False, deep_debug=False):
+        step = 5
+        delta = 20
         unknown_matrix = create_matrix(numeric=True)
         good_iterations = 0
         max_hits = 0
         knwon_params = self._get_all_known_params()
 
-        debug_images = False
+        debug_images = deep_debug
         # debug_images = True
 
-        for i in range(int(360/step)):
-            lower = np.array([i * step    ,  80, 80])
-            upper = np.array([i * step +20, 255, 255])
+        for i in range(int(180/step)):
+            lower = np.array([i * step       ,  80, 80])
+            upper = np.array([i * step +delta, 255, 255])
+            if debug:
+                logging.debug("")
+                logging.debug("Scanning in range HSV {}..{}".format(i*step,str( i* step +delta)))
             skip = False
-            for (l, u, _) in knwon_params:
+            for (l, u, _, _) in knwon_params:
                 if lower[0] >= l[0] and upper[0] <= u[0]:
                     #if testing interval is already coverd completely by a known parameter
                     skip = True
@@ -306,14 +415,20 @@ class ElementScannerForArtusi:
 
             letter = self.UNKNOWN_ELEMENT_LETTER
 
-            debug_image = self.hsv.copy()
+            debug_image = self.image_for_unkown() #self.hsv.copy()
 
             blurred = cv2.GaussianBlur(debug_image, (13,13), 0)
 
+            # if lower[0] == 115:
+            #     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8,8))
+            #     blurred = cv2.erode(blurred, kernel, iterations=1)
+            #     blurred = cv2.dilate(blurred, kernel, iterations = 2)
+
+
             # scan_image = cv2.inRange(self.hsv, lower, upper)
             scan_image = cv2.inRange(blurred, lower, upper)
-            if debug_images:
-                showImage(scan_image, 0, 'Range unknown {}'.format(lower))
+            # if debug_images:
+            #     showImage(scan_image, 0, 'Range unknown {}'.format(lower))
 
             cnts = cv2.findContours(scan_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             ccnts = cnts[0] if imutils.is_cv2() else cnts[1]
@@ -344,10 +459,15 @@ class ElementScannerForArtusi:
                 col = int(cX / square)
                 row = int(cY / square)
 
-                if area < 500 or area > 10000:
-                    if debug_images:
-                        logging.debug("Center of SKIPPED image is {} {} a:{}-> {} {}  ".format(cX, cY, area, row, col))
+                area_min = 2000
+                area_max = 10000
 
+                # if lower[0] == 115:
+                #     area_min = 100
+
+                if area < area_min or area > area_max:
+                    # if debug_images:
+                    #     logging.debug("Center of SKIPPED image is {} {} a:{}-> {} {}  ".format(cX, cY, area, row, col))
                     continue
 
                 c = c.astype("float")
@@ -359,17 +479,16 @@ class ElementScannerForArtusi:
 
                 prev = self.matrix[row][col]
                 if debug_images:
-                    logging.debug("Center of image is {} {} a:{}-> {} {} ? {}  ".format(cX, cY, area, row, col, prev))
+                    logging.debug("Center of image is {} {} a:{}-> {} {} prev: {}  ".format(cX, cY, area, row, col, prev))
                 if prev and prev != ' ':
                     overlapped += 1
                 count += 1
                 matrix[row][col] = letter
 
-            if debug_images:
-                showImage(debug_image, title="Step")
             # at the end of loop over shapes, add 1 to identified cell (we can have two or more path in cell!)
 
-            if 2 < count < 50 and overlapped < 5:
+            if 0 < count < 55 and overlapped < 25:
+
                 good_iterations += 1
 
                 for r in range(8):
@@ -379,14 +498,24 @@ class ElementScannerForArtusi:
                             if unknown_matrix[r][c] > max_hits:
                                 max_hits = unknown_matrix[r][c]
                 # print_matrix(unknown_matrix, 'unkown for {}'.format(lower), numeric=True)
-                if debug:
+                if debug or debug_images:
                     logging.debug("Scan for unknown with bounds {}:{} gives {}/{} shapes".format(lower, upper, count, overlapped))
-                    print_matrix(unknown_matrix, 'unkown for {}'.format(lower), numeric=True)
+                    print_matrix(unknown_matrix, 'unknown for {}'.format(lower), numeric=True)
                     print_matrix(matrix)
+
+                if debug_images:
+                    # showImage(scan_image,  5, 'Range unknown {}'.format(lower))
+                    # showImage(debug_image, 5, title="Step")
+                    showImages((debug_image,scan_image, ),  0, 'Range unknown {}'.format(lower))
+
+            else:
+                logging.debug("Skipping debug because count={} and overlapped={}".format(count, overlapped))
 
         if debug:
             logging.debug("Good iterations {}".format(good_iterations))
-        # clean up unknown matrix
+            print_matrix(unknown_matrix, 'before thresholding')
+
+    # clean up unknown matrix
         # threshold = int(good_iterations * 0.75)
         # for r in range(8):
         #     for c in range(8):
@@ -396,10 +525,84 @@ class ElementScannerForArtusi:
         matrix = create_matrix()
         for r in range(8):
             for c in range(8):
-                if unknown_matrix[r][c] > 2: #== max_hits:
+                if unknown_matrix[r][c] >= 1: #== max_hits:
                     matrix[r][c] = letter
 
         return matrix
+
+    def mask_out_known_squares(self):
+        masked = self.hsv.copy()
+
+        square = WIDTH / 8
+        w = int(WIDTH / 8)
+
+        for r in range(8):
+            for c in range(8):
+                l = self.matrix[r][c]
+                if l and l != '.' and l != ' ':
+                    # mask out
+                    x = w * c
+                    y = w * r
+                    pt = (int(x), int(y))
+                    cv2.rectangle(masked, pt, (pt[0] + w, pt[1] + w), (0, 0, 0), -2)
+
+        #showImage(masked,0, 'masked')
+        self.masked = masked
+        return masked
+
+
+    def fill_missing(self):
+
+        for r in range(8):
+            for c in range(8):
+                l = self.matrix[r][c]
+                if l is None or l == '.' or l == ' ':
+                    self.matrix[r][c] = ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER
+
+        for r in range(8):
+            for c in range(8):
+                if self.matrix[r][c] == ElementScannerForArtusi.BACKGROUND_LETTER:
+                    self.matrix[r][c] = ' '
+
+
+    def scan_for_template(self, template, letter, debug):
+        img_gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        # template_Gray = cv2.cvtColor(template_image, cv2.COLOR_BGR2GRAY)
+        w, h = template.shape[:2]
+
+        # methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
+        #            'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
+        # methods = ['cv2.TM_CCOEFF_NORMED']
+        # for meth  in methods:
+
+        scratch = self.image.copy()
+        # method = eval(meth)
+        res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.5
+        loc = np.where( res >= threshold)
+
+        matrix = create_matrix()
+        square = WIDTH / 8
+
+        for pt in zip(*loc[::-1]):
+            cv2.rectangle(scratch, pt, (pt[0] + w, pt[1] + h), (0,0,255), 8)
+            x = pt[0] + w/2
+            y = pt[1] + w/2
+
+            col = int(x / square)
+            row = int(y / square)
+            # logging.debug("ASsiging template to row, col {} {}".format(row,col))
+            matrix[row][col] = letter
+            self.matrix[row][col] = letter
+
+        if debug:
+            print_matrix(matrix, 'template!')
+            showImage(scratch, 0, 'For template')
+
+        return matrix
+
+        # return scratch
+
 
     def create_image(self, image, startx, starty, endx, endy, matrix):
         img = image.copy()
@@ -489,6 +692,10 @@ if __name__ == '__main__':
     parser.add_argument('images', metavar='image_file', type=argparse.FileType('r'), nargs='*',
                         help='image files to scan for Artusi final touch')
 
+    parser.add_argument('--template', metavar='template', type=argparse.FileType('r'),
+                        help='template image file')
+
+    match_template = False
     args = parser.parse_args()
 
     files = args.images
@@ -503,6 +710,9 @@ if __name__ == '__main__':
     if not files:
         parser.print_help()
         sys.exit(1)
+
+    if args.template:
+        match_template = True
 
     logging.debug("Images {}, debug={}, debug_unknown={}".format(files, args.debug, args.debug_unknown))
 
@@ -524,6 +734,9 @@ if __name__ == '__main__':
                 continue
 
         dim = (sw, sh)
+        scaling = h / sh
+        logging.debug("Scaling  {}".format(scaling))
+
         img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
 
         # crop
@@ -532,20 +745,51 @@ if __name__ == '__main__':
         scanner = ElementScannerForArtusi(image)
         if args.debug:
             scanner.set_debug(True)
+        if abs(scaling - 1) > 0.1:
+            scanner.scaling = scaling
 
         # scanner.scan()
-        scanner.scan_for(ElementScannerForArtusi.AQUA_SQUARE_CROSS )
-        scanner.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON )
-        scanner.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON )
+        scanner.scan_for(ElementScannerForArtusi.AQUA_SQUARE_CROSS)
+        scanner.scan_for(ElementScannerForArtusi.GREEN_SQUARE_SMALL_SPOON)
+        scanner.scan_for(ElementScannerForArtusi.PINK_SQUARE_BIG_SPOON)
         scanner.scan_for(ElementScannerForArtusi.SENAPE_SQUARE_FORK)
+        # scanner.scan_for_background(True)
+        scanner.scan_for(ElementScannerForArtusi.BACKGROUND_SQUARE)
+        scanner.fill_missing()
+
+        # sys.exit(0)
+        # scanner.scan_for(ElementScannerForArtusi.BACKGROUND_SQUARE_1)
         if args.debug:
             print_matrix(scanner.matrix, "Scan befor unknown")
-        scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown)
+
+        sys.exit(0)
+        masked = scanner.mask_out_known_squares()
+
+
+        if match_template:
+            img = cv2.imread(args.template.name, cv2.IMREAD_GRAYSCALE)
+            # scele
+            h,w = img.shape[:2]
+            dim = (int(h/scaling), int(w/scaling))
+            img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+
+            # showImage(img,0,'template')
+            scanner.scan_for_template(img, ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER, debug=args.debug_unknown)
+        else:
+            scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown, debug_unknown=True)
         # for r in range(36):
         #     param = (r + 1 ) * 10
         #     scanner.scan_for(param)
 
         print_matrix(scanner.matrix, "scan for image {}".format(f))
+        # save to file
+        scanned_file = 'scanned_matrix.txt'
+        text_file = open(scanned_file, "w")
+        from solver import Matrix
+        text_file.write(Matrix.matrix_to_string(scanner.matrix,bare=True))
+        text_file.close()
+        logging.info("Scanned file written to {}".format(scanned_file))
+
         if args.show:
             img = scanner.create_image(img, START_X, START_Y, END_X, END_Y, scanner.matrix)
             cv2.imshow("autoscan", img)

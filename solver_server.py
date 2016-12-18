@@ -192,6 +192,8 @@ if __name__=='__main__':
     httpserver = HTTPServer(application)
     httpserver.listen(args.port, args.ip)
 
+    logging.info("Server started")
+
     loop = ioloop.IOLoop.current()
     # loop.spawn_callback(poller)
     loop.start()

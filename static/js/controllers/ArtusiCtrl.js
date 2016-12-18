@@ -21,9 +21,73 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         return window.btoa( binary );
     }
 
+    function test_canvas(){
+        var c=document.getElementById("canvas");
+        var context=c.getContext("2d");
+        // var img=document.getElementById("server-image");
+        sample='/static/tmp/IMG_1502.jpg'
+        _w = $(c).width();
+        _h = $(c).height();
+        c.setAttribute('width', ''+_w);
+        c.setAttribute('height', ''+_h);
+
+        //hide true image
+        // $(img).css({'display':'none'});
+
+        var imageObj = new Image();
+        imageObj.src = sample; //$scope.artusi.solution_url;
+        console.log(imageObj.src)
+        imageObj.onload = function(){
+            w = $(c).width();
+             _h = $(c).height();
+            // w=50
+            ratio = 1136 / 640;
+            h = w * ratio;
+            context.drawImage(imageObj,0,0,w,h );
+
+            sqw = w / 9
+            //draw on top sample square
+            context.beginPath();
+            context.rect(188, 50,sqw, sqw);
+            context.fillStyle = "rgba(255, 255, 0, 0.5)";
+            context.fill();
+        }
+    }
+
     $scope.autosubmit = function () {
         callSolver(true, function(success){
+            if(!success)
+                return;
 
+            // var c=document.getElementById("canvas");
+            // var context=c.getContext("2d");
+            // var img=document.getElementById("server-image");
+            // img.src=$scope.artusi.solution_url;
+            //
+            // //hide true image
+            // $(img).css({'display':'none'});
+            //
+            // var imageObj = new Image();
+            // imageObj.src = $scope.artusi.solution_url;
+            // console.log(imageObj.src)
+            // imageObj.onload = function(){
+            //     w = $(c).width();
+            //     _h = $(c).height();
+            //     w=50
+            //     h = w*2
+            //     context.drawImage(imageObj,0,0,h,w );
+            // };
+            //
+            // // var canvas = document.getElementById('canvas');
+            // // var context = canvas.getContext('2d');
+            //
+            // context.beginPath();
+            // context.rect(188, 50, 200, 100);
+            // context.fillStyle = 'yellow';
+            // context.fill();
+            // context.lineWidth = 7;
+            // context.strokeStyle = 'black';
+            // context.stroke();
         });
         $scope.image_arrived = false;
     };
@@ -68,5 +132,10 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
                 callback(false)
         });
     }
+
+    $timeout(function(){
+        // test_canvas()
+    },0)
+
 
 });

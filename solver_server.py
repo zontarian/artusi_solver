@@ -63,12 +63,11 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             logging.debug("Image on server, now scanning")
 
             #
-            filename = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
-            text_file = open(filename.name, "wb")
-            text_file.write(img_data)
-            text_file.close()
-            logging.info("File downloaded written to {}".format(filename.name))
-
+            # filename = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
+            # text_file = open(filename.name, "wb")
+            # text_file.write(img_data)
+            # text_file.close()
+            # logging.info("File downloaded written to {}".format(filename.name))
 
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             logging.info("Read image {}".format(img_np.shape))
@@ -86,8 +85,9 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
                     self.write(self.create_error_response('screenshot of wrong size '))
                     return
 
-            dim = (sw, sh)
-            img_np = cv2.resize(img_np, dim, interpolation=cv2.INTER_CUBIC)
+                dim = (sw, sh)
+                img_np = cv2.resize(img_np, dim, interpolation=cv2.INTER_CUBIC)
+                logging.info("Image resized to {},{}".format(sw,sh))
 
             import time
             # time.sleep(2)

@@ -509,6 +509,10 @@ if __name__ == '__main__':
         if width != 640:
             dim = (640, 1138)
             image = cv2.resize(image, dim, interpolation=cv2.INTER_CUBIC)
+            logging.debug("IMage resized to {}".format(dim))
+
+        image = solve_artusi(image, args.show, False, no_console=True)
+        '''
 
         scan = scanner.ElementScannerForArtusi(image)
         scan.crop_image(scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y)
@@ -535,6 +539,7 @@ if __name__ == '__main__':
             # img = scan.create_image(image, scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y, scan.matrix)
             cv2.imshow("result", img)
             cv2.waitKey(0)
+        '''
     else:
         file = args.matrix_file.name
 

@@ -20,7 +20,8 @@ TRAINING_IMAGES = [
     "IMG_1389.PNG",
 ]
 
-ASSETS_DIR = 'assets'
+dir_path = os.path.dirname(os.path.realpath(__file__))
+ASSETS_DIR = os.path.join(dir_path, 'assets')
 
 IMAGE = 'IMG_1387.PNG'
 

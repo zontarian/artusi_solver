@@ -1,10 +1,5 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingMixIn
-import threading
+
 import argparse
-import re
-import json
-import cgi
 import cv2
 import numpy as np
 import base64

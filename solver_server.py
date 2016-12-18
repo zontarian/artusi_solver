@@ -61,6 +61,15 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             # now do solving.. if image is of the correct size.
             nparr = np.fromstring(img_data, np.uint8)
             logging.debug("Image on server, now scanning")
+
+            #
+            filename = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
+            text_file = open(filename.name, "w")
+            text_file.write(img_data)
+            text_file.close()
+            logging.info("File downloaded written to {}".format(tempfile.name))
+
+
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             logging.info("Read image {}".format(img_np.shape))
 

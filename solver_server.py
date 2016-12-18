@@ -64,10 +64,10 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
 
             #
             filename = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
-            text_file = open(filename.name, "w")
+            text_file = open(filename.name, "wb")
             text_file.write(img_data)
             text_file.close()
-            logging.info("File downloaded written to {}".format(tempfile.name))
+            logging.info("File downloaded written to {}".format(filename.name))
 
 
             img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)

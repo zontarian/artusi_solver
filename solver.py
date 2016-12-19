@@ -50,6 +50,18 @@ class Matrix:
         return matrix
 
     @staticmethod
+    def create_from_string(str):
+        matrix = []
+        for line in str.split('\n'):
+            matrix.append(list(line))
+
+        for r in range(8):
+            for c in range(8):
+                if matrix[r][c] == '.':
+                    matrix[r][c] = ' '
+        return matrix
+
+    @staticmethod
     def count_items(matrix, item):
         count =0
         non_null = 0
@@ -159,6 +171,12 @@ class ArtusiSolver:
         self.ingredient = '?'
         self.threshold = 4
         self.best_solutions = []
+        # clean up matrix
+        for xc in range(8):
+            for xr in range(8):
+                cell = self.matrix[xr][xc]
+                if cell == '.':
+                    self.matrix[xr][xc] = ' '
 
     def solve(self, ingredient=None, threshold=5):
 
@@ -424,6 +442,38 @@ class ArtusiSolver:
         #     print("")
 
 
+def solve_artusi_with_matrix(matrix_as_string, ingredient='?', no_console=False, tmp_img_filename=None):
+
+    logging.debug("Now solving from resulting matrix {}".format(matrix_as_string))
+    matrix = Matrix.create_from_string(matrix_as_string)
+    # Matrix.print_matrix(matrix, "As read")
+
+    # now pass image to scann
+    solver = ArtusiSolver(matrix)
+    solver.solve(ingredient=ingredient)
+
+    sols = solver.get_best_solutions()
+    logging.debug("Solved")
+    for sol in sols:
+        logging.debug("Solution:{}".format(sol))
+
+    if tmp_img_filename:
+        image_data = cv2.imread(tmp_img_filename)
+    else:
+        logging.error("No image.. returning just data")
+        return None, solver.matrix
+
+    if sols:
+        sol = sols[0]
+        scan = scanner.ElementScannerForArtusi(image_data)
+
+        img = scan.superimpose_solution(image_data, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
+                                        scanner.START_X, scanner.START_Y, (scanner.END_X - scanner.START_X) / 8)
+    else:
+        img = image_data
+    return img, solver.matrix
+
+
 def solve_artusi(image_data, show=False, show_step=False, ingredient='?', no_console=False):
     scan = scanner.ElementScannerForArtusi(image_data)
     scan.crop_image(scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y)
@@ -438,7 +488,7 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?', no_con
         image_data = cv2.cvtColor(iamge_gray, cv2.COLOR_GRAY2BGR)
         img = scan.create_image(image_data, scanner.START_X, scanner.START_Y, scanner.END_X, scanner.END_Y, scan.matrix)
         if show_step:
-            return img
+            return img, scan.matrix
 
         if not no_console:
             cv2.imshow("autoscan", img)
@@ -454,9 +504,13 @@ def solve_artusi(image_data, show=False, show_step=False, ingredient='?', no_con
     for sol in sols:
         logging.debug("Solution:{}".format(sol))
 
-    img = scan.superimpose_solution(image_data, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
+    if sols:
+        sol = sols[0]
+        img = scan.superimpose_solution(image_data, sol.start_row, sol.start_col, sol.end_row, sol.end_col,
                                     scanner.START_X, scanner.START_Y, (scanner.END_X - scanner.START_X) / 8 )
-    return img
+    else:
+        img = image_data
+    return img, solver.matrix
 
 if __name__ == '__main__':
 
@@ -525,7 +579,7 @@ if __name__ == '__main__':
             image = cv2.resize(image, dim, interpolation=cv2.INTER_CUBIC)
             logging.debug("IMage resized to {}".format(dim))
 
-        image = solve_artusi(image, args.show, False, no_console=True)
+        image, _ = solve_artusi(image, args.show, False, no_console=True)
         '''
 
         scan = scanner.ElementScannerForArtusi(image)

@@ -49,53 +49,71 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
             as_url = self.get_argument('as_url', False) == 'true'
             img_data = self.request.files['image_file'][0]['body']
             show_step = self.get_argument('show_step', False) == 'true'
+            matrix_enc = self.get_argument('matrix', None)
+            tmp_img = self.get_argument('tmp_img', None)
+            # print("matrix_enc", matrix_enc)
+
+            matrix = None
+            intermediate_file = None
+            if matrix_enc:
+                matrix = base64.b64decode(matrix_enc)
+                # print("matrix",matrix)
+                matrix = matrix.decode('ascii')
+                logging.debug("MAtrix received is {}".format(matrix))
 
             if not img_data:
                 imgfile_b64 = self.get_json_argument('img_data', required=True)
                 img_data = base64.b64decode(imgfile_b64)
 
-            if not img_data or len(img_data) == 0:
-                self.write(self.create_error_response('no image found'))
+            if not img_data or len(img_data) == 0 and not matrix:
+                self.write(self.create_error_response('no image found nor matrix'))
                 return
 
-            # now do solving.. if image is of the correct size.
-            nparr = np.fromstring(img_data, np.uint8)
-            logging.debug("Image on server, now scanning")
+            if not matrix:
+                # now do solving.. if image is of the correct size.
+                nparr = np.fromstring(img_data, np.uint8)
+                logging.debug("Image on server, now scanning")
 
-            #
-            # filename = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
-            # text_file = open(filename.name, "wb")
-            # text_file.write(img_data)
-            # text_file.close()
-            # logging.info("File downloaded written to {}".format(filename.name))
+                img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                logging.info("Read image {}".format(img_np.shape))
 
-            img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            logging.info("Read image {}".format(img_np.shape))
+                (h, w, _) = img_np.shape
+                sw, sh = SCREENSHOT_SIZES['iphone5']
+                ratio = h / w
+                if w != sw:
+                    _h = int(ratio * sw)
+                    if _h != sh and abs(_h - sh) > 4:
+                    # if h != sh or w != sw:
+                        logging.error("Screen size is {},{} resized to {},{} different from {},{}. Ratio is {}".format(
+                            w, h, sw, _h, sw, sh, ratio
+                        ))
+                        self.write(self.create_error_response('screenshot of wrong size '))
+                        return
 
-            (h, w, _) = img_np.shape
-            sw, sh = SCREENSHOT_SIZES['iphone5']
-            ratio = h / w
-            if w != sw:
-                _h = int(ratio * sw)
-                if _h != sh and abs(_h - sh) > 4:
-                # if h != sh or w != sw:
-                    logging.error("Screen size is {},{} resized to {},{} different from {},{}. Ratio is {}".format(
-                        w, h, sw, _h, sw, sh, ratio
-                    ))
-                    self.write(self.create_error_response('screenshot of wrong size '))
-                    return
+                    dim = (sw, sh)
+                    img_np = cv2.resize(img_np, dim, interpolation=cv2.INTER_CUBIC)
+                    logging.info("Image resized to {},{}".format(sw,sh))
 
-                dim = (sw, sh)
-                img_np = cv2.resize(img_np, dim, interpolation=cv2.INTER_CUBIC)
-                logging.info("Image resized to {},{}".format(sw,sh))
+                # save itnermediate step as temp file, scaled
 
-            import time
-            # time.sleep(2)
+                intermediate_file = tempfile.NamedTemporaryFile(dir=TEMP_DIR, suffix=".jpg", delete=False)
+                bw = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
+                cv2.imwrite(intermediate_file.name, bw)
+                logging.info("File downloaded written to {}".format(intermediate_file.name))
+                loop = ioloop.IOLoop.current()
+                # delete after 10'..
+                loop.call_later(60 * 10, self.delete_temp_file, intermediate_file)
 
-            # now do solve..
-            image = solver.solve_artusi(img_np, True, show_step=show_step, no_console=True)
+                import time
+                # time.sleep(2)
+                # now do solve..
+                image, matrix = solver.solve_artusi(img_np, True, show_step=show_step, no_console=True)
+            else:
+                # solve with matrix
+                tmp_img_filename = tmp_img
+                image, matrix = solver.solve_artusi_with_matrix(matrix, no_console=True, tmp_img_filename=tmp_img_filename)
 
-            retval, buf = img_data = cv2.imencode('.jpg', image)
+            retval, buf = cv2.imencode('.jpg', image)
             if not retval:
                 raise Exception("Error encoding image")
             img_data = buf.tostring()
@@ -108,6 +126,15 @@ class ArtusiUploadHandler(web.RequestHandler, NoCacheMixin):
                 response = {
                     'url': '/static/tmp/{}'.format(os.path.basename(filename.name)),
                 }
+                if matrix:
+                    m = solver.Matrix.matrix_to_string(matrix, bare=True)
+                    m = bytes(m, 'ascii')
+                    enc = base64.b64encode(m)
+                    response['matrix'] = enc.decode('ascii'),
+
+                if intermediate_file:
+                    response['tmp_image'] = intermediate_file.name
+
                 self.set_header("Content-type", "application/json")
                 self.write(response)
                 #delete after X minutes

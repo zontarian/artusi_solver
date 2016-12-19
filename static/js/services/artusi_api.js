@@ -52,16 +52,24 @@ angular.module('robamolle').factory('ArtusiAPI',function(Api ) {
         start: function () {
             return Api.call('get', '/api/system/start');
         },
-        upload: function(selector, show_step){
+        upload: function(selector, show_step, matrix, server_img){
             show_step = show_step == undefined ? true : show_step;
+            matrix = matrix == undefined || ! matrix ? null : matrix;
+            server_img = server_img==undefined ? null : server_img;
+
             formData =new FormData();
             var el=$(selector);
             fs = el[0].files;
             fss = fs[0];
             val = fss;
+            enc_matrix = matrix;// atob(matrix);
             formData.append('image_file', val);
             formData.append('as_url',true);
             formData.append('show_step',show_step);
+            if(matrix)
+                formData.append('matrix', enc_matrix);
+            if(server_img)
+                formData.append('tmp_img', server_img);
 
             return Api.call('post','/artusi/upload',formData,'undefined')
         },

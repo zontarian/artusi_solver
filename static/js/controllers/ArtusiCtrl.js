@@ -7,7 +7,9 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         image:null,
         solution_image:null,
         solution_url:"",
-        is_solution:false
+        is_solution:false,
+        matrix:null,
+        server_image:null
     };
     $scope.image_arrived = false;
     //
@@ -55,48 +57,20 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
     }
 
     $scope.autosubmit = function () {
-        callSolver(true, function(success){
+        callSolver(true, null, function(success){
             if(!success)
                 return;
 
-            // var c=document.getElementById("canvas");
-            // var context=c.getContext("2d");
-            // var img=document.getElementById("server-image");
-            // img.src=$scope.artusi.solution_url;
-            //
-            // //hide true image
-            // $(img).css({'display':'none'});
-            //
-            // var imageObj = new Image();
-            // imageObj.src = $scope.artusi.solution_url;
-            // console.log(imageObj.src)
-            // imageObj.onload = function(){
-            //     w = $(c).width();
-            //     _h = $(c).height();
-            //     w=50
-            //     h = w*2
-            //     context.drawImage(imageObj,0,0,h,w );
-            // };
-            //
-            // // var canvas = document.getElementById('canvas');
-            // // var context = canvas.getContext('2d');
-            //
-            // context.beginPath();
-            // context.rect(188, 50, 200, 100);
-            // context.fillStyle = 'yellow';
-            // context.fill();
-            // context.lineWidth = 7;
-            // context.strokeStyle = 'black';
-            // context.stroke();
         });
         $scope.image_arrived = false;
     };
 
     $scope.solve = function(){
-
-        callSolver(false, function(success){
+        matrix = $scope.artusi.matrix;
+        callSolver(false, matrix,function(success){
             $scope.artusi.image=null;
             $scope.artusi.is_solution=true;
+            $scope.artusi.server_image = null;
         });
         $scope.image_arrived = false;
     };
@@ -114,12 +88,18 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
         };
     };
 
-    function callSolver(show_step, callback){
+    function callSolver(show_step, matrix, callback){
         $scope.artusi.solution_url = '/static/css/loading.gif';
-        ArtusiAPI.upload('#artusi-image', show_step).then(function(data){
-            console.log("api called",data.url);
+        ArtusiAPI.upload('#artusi-image', show_step, matrix, $scope.artusi.server_image).then(function(data){
+            console.log("api called",data);
             $scope.artusi.solution_url = data.url;
             $scope.image_arrived = true;
+            $scope.artusi.matrix = null;
+            if(data.matrix)
+                $scope.artusi.matrix = data.matrix;
+            if(data.tmp_image)
+                $scope.artusi.server_image = data.tmp_image;
+
             if(callback)
                 callback(true)
         },function(err){
@@ -127,6 +107,7 @@ angular.module('robamolle').controller('ArtusiCtrl', function ($scope, $http, $t
             alertify.error("Error:<br />"+err.data.errorCode)
             $scope.image_arrived = false;
             $scope.artusi.solution_url = null;
+            $scope.artusi.matrix = null;
             $scope.artusi.image = null;
             if(callback)
                 callback(false)

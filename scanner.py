@@ -632,6 +632,7 @@ class ElementScannerForArtusi:
     def superimpose_solution(self, image, start_row, start_col, end_row, end_col, start_x, start_y, width):
         img = image.copy()
         # now draw
+        print("OFFSET", start_x,start_y)
         x = int(start_x + start_col * width)
         y = int(start_y + start_row * width)
         width = int(width)
@@ -692,6 +693,8 @@ if __name__ == '__main__':
     parser.add_argument('--show', action='store_true', default=False, help="show final image")
     parser.add_argument('images', metavar='image_file', type=argparse.FileType('r'), nargs='*',
                         help='image files to scan for Artusi final touch')
+
+    parser.add_argument('--old-algorithm', action='store_true', default=False, help="use old way final image")
 
     parser.add_argument('--template', metavar='template', type=argparse.FileType('r'),
                         help='template image file')
@@ -761,23 +764,23 @@ if __name__ == '__main__':
         # sys.exit(0)
         # scanner.scan_for(ElementScannerForArtusi.BACKGROUND_SQUARE_1)
         if args.debug:
-            print_matrix(scanner.matrix, "Scan befor unknown")
+            print_matrix(scanner.matrix, "Scan before unknown")
 
-        sys.exit(0)
-        masked = scanner.mask_out_known_squares()
+        # sys.exit(0)
+        # masked = scanner.mask_out_known_squares()
 
+        if args.old_algorithm:
+            if match_template:
+                img = cv2.imread(args.template.name, cv2.IMREAD_GRAYSCALE)
+                # scele
+                h,w = img.shape[:2]
+                dim = (int(h/scaling), int(w/scaling))
+                img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
 
-        if match_template:
-            img = cv2.imread(args.template.name, cv2.IMREAD_GRAYSCALE)
-            # scele
-            h,w = img.shape[:2]
-            dim = (int(h/scaling), int(w/scaling))
-            img = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
-
-            # showImage(img,0,'template')
-            scanner.scan_for_template(img, ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER, debug=args.debug_unknown)
-        else:
-            scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown, debug_unknown=True)
+                # showImage(img,0,'template')
+                scanner.scan_for_template(img, ElementScannerForArtusi.UNKNOWN_ELEMENT_LETTER, debug=args.debug_unknown)
+            else:
+                scanner.scan_for(ElementScannerForArtusi.UNKNOWN_SQUARE_ELEMENT, debug=args.debug_unknown, debug_unknown=True)
         # for r in range(36):
         #     param = (r + 1 ) * 10
         #     scanner.scan_for(param)
